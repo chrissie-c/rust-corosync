@@ -1,0 +1,10 @@
+[package]
+name = "rust-corosync"
+version = "0.1.0"
+authors = ["Christine Caulfield <ccaulfie@redhat.com>"]
+edition = "2018"
+
+[dependencies]
+rust-corosync-sys = { path = "rust-corosync-sys" }
+lazy_static = "1.4.0"
+num_enum = "0.5.1"
