@@ -13,7 +13,7 @@ fn deliver_fn(_handle: u64,
 	      msg_len: usize)
 {
     println!("TEST deliver_fn called for {}, from nodeid/pid {}/{}. len={}", group_name, nodeid, pid, msg_len);
-    //    println!("  {}", str::from_utf8(msg).unwrap());
+//        println!("  {}", str::from_utf8_lossy(msg).unwrap());
     for i in 0..msg_len {
 	print!("{:02x} ", msg[i]);
     }
@@ -82,6 +82,7 @@ fn main() {
 	}
     }
 
+    // Test membership_get()
     match cpg::membership_get(handle, &"TEST".to_owned()) {
 	Ok(m) => {
 	    println!("  members: {:?}", m);
@@ -92,11 +93,12 @@ fn main() {
 	}
     }
 
+    // Test context APIs
     let set_context: u64=0xabcdbeefcafe;
     match cpg::context_set(handle, set_context) {
 	Ok(_) => {},
 	Err(e) => {
-	    println!("Error in CPG join: {}", e);
+	    println!("Error in CPG context_set: {}", e);
 	    return;
 	}
     }
@@ -112,14 +114,23 @@ fn main() {
 	}
     }
 
+    // Test iterator
+    let cpg_iter = cpg::CpgIterStart::new(handle, &"".to_owned(), cpg::CpgIterType::All).unwrap();
+    for i in cpg_iter {
+	println!("ITER: {:?}", i);
+    }
+    println!("");
+
+    // We should receive our own message (at least) in the event loop
     match cpg::mcast_joined(handle, cpg::Guarantee::TypeAgreed,
 			    &"This is a test".to_string().into_bytes()) {
 	Ok(_) => {}
 	Err(e) => {
-	    println!("Error in CPG context_get: {}", e);
+	    println!("Error in CPG mcast_joined: {}", e);
 	}
     }
 
+    // Wait for events
     loop {
 	cpg::dispatch(handle, cpg::DispatchFlags::All).unwrap();
     }
