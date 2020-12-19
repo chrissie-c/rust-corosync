@@ -2,6 +2,7 @@
 
 extern crate rust_corosync as corosync;
 
+
 use corosync::cpg;
 use std::str;
 
@@ -132,6 +133,6 @@ fn main() {
 
     // Wait for events
     loop {
-	cpg::dispatch(handle, cpg::DispatchFlags::All).unwrap();
+	cpg::dispatch(handle, corosync::DispatchFlags::All).unwrap();
     }
 }

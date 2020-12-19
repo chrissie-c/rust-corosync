@@ -2,3 +2,91 @@
 extern crate lazy_static;
 pub mod cpg;
 
+use std::fmt;
+use num_enum::TryFromPrimitive;
+
+// This needs to be kept up-to-date!
+#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[repr(u32)]
+pub enum CsError {
+    CsOk = 1,
+    CsErrLibrary = 2,
+    CsErrVersion = 3,
+    CsErrInit = 4,
+    CsErrTimeout = 5,
+    CsErrTryAgain = 6,
+    CsErrInvalidParam = 7,
+    CsErrNoMemory = 8,
+    CsErrBadHandle = 9,
+    CsErrBusy = 10,
+    CsErrAccess = 11,
+    CsErrNotExist = 12,
+    CsErrNameTooLong = 13,
+    CsErrExist = 14,
+    CsErrNoSpace = 15,
+    CsErrInterrupt = 16,
+    CsErrNameNotFound = 17,
+    CsErrNoResources = 18,
+    CsErrNotSupported = 19,
+    CsErrBadOperation = 20,
+    CsErrFailedOperation = 21,
+    CsErrMessageError = 22,
+    CsErrQueueFull = 23,
+    CsErrQueueNotAvailable = 24,
+    CsErrBadFlags = 25,
+    CsErrTooBig = 26,
+    CsErrNoSection = 27,
+    CsErrContextNotFound = 28,
+    CsErrTooManyGroups = 30,
+    CsErrSecurity = 100,
+    CsErrRustCompat = 999, // Set if we get a unknown return from corosync
+}
+pub type Result<T> = ::std::result::Result<T, CsError>;
+
+impl fmt::Display for CsError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	match self {
+	    CsError::CsOk => write!(f, "OK"),
+	    CsError::CsErrLibrary => write!(f, "ErrLibrary"),
+	    CsError::CsErrVersion => write!(f, "ErrVersion"),
+	    CsError::CsErrInit => write!(f, "ErrInit"),
+	    CsError::CsErrTimeout => write!(f, "ErrTimeout"),
+	    CsError::CsErrTryAgain => write!(f, "ErrTryAgain"),
+	    CsError::CsErrInvalidParam => write!(f, "ErrInvalidParam"),
+	    CsError::CsErrNoMemory => write!(f, "ErrNoMemory"),
+	    CsError::CsErrBadHandle => write!(f, "ErrbadHandle"),
+	    CsError::CsErrBusy => write!(f, "ErrBusy"),
+	    CsError::CsErrAccess => write!(f, "ErrAccess"),
+	    CsError::CsErrNotExist => write!(f, "ErrNotExist"),
+	    CsError::CsErrNameTooLong => write!(f, "ErrNameTooLong"),
+	    CsError::CsErrExist => write!(f, "ErrExist"),
+	    CsError::CsErrNoSpace => write!(f, "ErrNoSpace"),
+	    CsError::CsErrInterrupt => write!(f, "ErrInterrupt"),
+	    CsError::CsErrNameNotFound => write!(f, "ErrNameNotFound"),
+	    CsError::CsErrNoResources => write!(f, "ErrNoResources"),
+	    CsError::CsErrNotSupported => write!(f, "ErrNotSupported"),
+	    CsError::CsErrBadOperation => write!(f, "ErrBadOperation"),
+	    CsError::CsErrFailedOperation => write!(f, "ErrFailedOperation"),
+	    CsError::CsErrMessageError => write!(f, "ErrMEssageError"),
+	    CsError::CsErrQueueFull => write!(f, "ErrQueueFull"),
+	    CsError::CsErrQueueNotAvailable => write!(f, "ErrQueueNotAvailable"),
+	    CsError::CsErrBadFlags => write!(f, "ErrBadFlags"),
+	    CsError::CsErrTooBig => write!(f, "ErrTooBig"),
+	    CsError::CsErrNoSection => write!(f, "ErrNoSection"),
+	    CsError::CsErrContextNotFound => write!(f, "ErrContextNotFound"),
+	    CsError::CsErrTooManyGroups => write!(f, "ErrTooManyGroups"),
+	    CsError::CsErrSecurity => write!(f, "ErrSecurity"),
+	    CsError::CsErrRustCompat => write!(f, "ErrRustCompat"),
+	}
+    }
+}
+
+#[derive(Copy, Clone)]
+// The numbers match the C enum, of course.
+pub enum DispatchFlags {
+    One = 1,
+    All = 2,
+    Blocking = 3,
+    OneNonblocking = 4,
+}
+
