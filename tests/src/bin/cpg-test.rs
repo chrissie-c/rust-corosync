@@ -1,8 +1,6 @@
-// CC: Called this "main" but its really just a cpg test
+// Test the CPG library. Requires that corosync is running and that we are root.
 
 extern crate rust_corosync as corosync;
-
-
 use corosync::cpg;
 use std::str;
 
@@ -14,11 +12,17 @@ fn deliver_fn(_handle: u64,
 	      msg_len: usize)
 {
     println!("TEST deliver_fn called for {}, from nodeid/pid {}/{}. len={}", group_name, nodeid, pid, msg_len);
-//        println!("  {}", str::from_utf8_lossy(msg).unwrap());
-    for i in 0..msg_len {
-	print!("{:02x} ", msg[i]);
+
+    // Print as text if it's valid UTF8
+    match  str::from_utf8(msg) {
+	Ok(s) => println!("  {}", s),
+	Err(_) => {
+	    for i in 0..msg_len {
+		print!("{:02x} ", msg[i]);
+	    }
+	    println!("");
+	}
     }
-    println!("");
 }
 
 fn confchg_fn(_handle: u64,
@@ -104,6 +108,7 @@ fn main() {
 	}
     }
 
+    // NOTE This will fail on 32 bit systems because void* is not u64
     match cpg::context_get(handle) {
 	Ok(c) => {
 	    if c != set_context {

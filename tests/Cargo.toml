@@ -6,3 +6,13 @@ edition = "2018"
 
 [dependencies]
 rust-corosync = { path = ".." }
+
+[[bin]]
+name = "cpg-test"
+test = false
+bench = false
+
+#[[bin]]
+#name = "cmap-test"
+#test = false
+#bench = false

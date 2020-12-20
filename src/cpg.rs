@@ -148,10 +148,17 @@ lazy_static! {
     static ref HANDLE_HASH: Mutex<HashMap<u64, Handle>> = Mutex::new(HashMap::new());
 }
 
-/* Convert a Rust String into a cpg_name struct for libcpg */
-fn string_to_cpg_name(group: &String) -> ffi::cpg::cpg_name
+// Convert a Rust String into a cpg_name struct for libcpg
+fn string_to_cpg_name(group: &String) -> Result<ffi::cpg::cpg_name>
 {
-    let c_name = CString::new(group.as_str()).unwrap();
+    if group.len() > CPG_NAMELEN_MAX-1 {
+	return Err(CsError::CsErrInvalidParam);
+    }
+
+    let c_name = match CString::new(group.as_str()) {
+	Ok(n) => n,
+	Err(_) => return Err(CsError::CsErrLibrary),
+    };
     let mut c_group = ffi::cpg::cpg_name {length: group.len() as u32, value: [0; CPG_NAMELEN_MAX]};
 
     unsafe {
@@ -159,9 +166,24 @@ fn string_to_cpg_name(group: &String) -> ffi::cpg::cpg_name
 	copy_nonoverlapping(c_name.as_ptr(), c_group.value.as_mut_ptr(), group.len());
     }
 
-    c_group
+    Ok(c_group)
 }
 
+
+// Convert an array of cpg_addresses to a Vec<cpg::Address> - used in callbacks
+fn cpg_array_to_vec(list: *const ffi::cpg::cpg_address, list_entries: usize) -> Vec<Address>
+{
+    let temp: &[ffi::cpg::cpg_address] = unsafe { slice::from_raw_parts(list, list_entries as usize) };
+    let mut r_vec = Vec::<Address>::new();
+
+    for i in 0..list_entries as usize {
+	let a: Address = Address {nodeid: temp[i].nodeid,
+				  pid: temp[i].pid,
+				  reason: Reason::new(temp[i].reason)};
+	r_vec.push(a);
+    }
+    r_vec
+}
 
 // Called from CPG callback function - munge params back to Rust from C
 extern "C" fn rust_deliver_fn(
@@ -198,21 +220,6 @@ extern "C" fn rust_deliver_fn(
     }
 }
 
-// Convert an array of cpg_addresses to a Vec<cpg::Address>
-fn cpg_array_to_vec(list: *const ffi::cpg::cpg_address, list_entries: usize) -> Vec<Address>
-{
-    let temp: &[ffi::cpg::cpg_address] = unsafe { slice::from_raw_parts(list, list_entries as usize) };
-    let mut r_vec = Vec::<Address>::new();
-
-    for i in 0..list_entries as usize {
-	let a: Address = Address {nodeid: temp[i].nodeid,
-				  pid: temp[i].pid,
-				  reason: Reason::new(temp[i].reason)};
-	r_vec.push(a);
-    }
-    r_vec
-}
-
 // Called from CPG callback function - munge params back to Rust from C
 extern "C" fn rust_confchg_fn(handle: ffi::cpg::cpg_handle_t,
 			      group_name: *const ffi::cpg::cpg_name,
@@ -246,6 +253,7 @@ extern "C" fn rust_confchg_fn(handle: ffi::cpg::cpg_handle_t,
     }
 }
 
+// Called from CPG callback function - munge params back to Rust from C
 extern "C" fn rust_totem_confchg_fn(handle: ffi::cpg::cpg_handle_t,
 				    ring_id: ffi::cpg::cpg_ring_id,
 				    member_list_entries: u32,
@@ -273,7 +281,8 @@ extern "C" fn rust_totem_confchg_fn(handle: ffi::cpg::cpg_handle_t,
     }
 }
 
-// This is dependant on the num_enum crate.
+// This is dependant on the num_enum crate, converts a C cs_error_t into the Rust enum
+// There seems to be some debate as to whether this should be part of the language:
 // https://internals.rust-lang.org/t/pre-rfc-enum-from-integer/6348/25
 fn cs_error_to_enum(cserr: u32) -> CsError
 {
@@ -294,7 +303,7 @@ pub fn initialize(model_data: &ModelData, context: u64) -> Result<u64>
 		cpg_deliver_fn: Some(rust_deliver_fn),
 		cpg_confchg_fn: Some(rust_confchg_fn),
 		cpg_totem_confchg_fn: Some(rust_totem_confchg_fn),
-		flags: 0, // TODO flags conversion
+		flags: 0, // No supported flags (yet)
 	    }
 	}
 	_ => return Err(CsError::CsErrInvalidParam)
@@ -320,6 +329,7 @@ pub fn initialize(model_data: &ModelData, context: u64) -> Result<u64>
 
 pub fn finalize(handle: u64) -> Result<()>
 {
+    HANDLE_HASH.lock().unwrap().remove(&handle);
     let res =
 	unsafe {
 	    ffi::cpg::cpg_finalize(handle)
@@ -327,10 +337,11 @@ pub fn finalize(handle: u64) -> Result<()>
     if res == ffi::cpg::CS_OK {
 	Ok(())
     } else {
-	Err(CsError::try_from(res).unwrap())
+	Err(cs_error_to_enum(res))
     }
 }
 
+// Not sure if an FD is the right thing to return here, but it will do for now.
 pub fn fd_get(handle: u64) -> Result<i32>
 {
     let c_fd: *mut c_int = &mut 0 as *mut _ as *mut c_int;
@@ -363,7 +374,7 @@ pub fn join(handle: u64, group: &String) -> Result<()>
 {
     let res =
 	unsafe {
-	    let c_group = string_to_cpg_name(group);
+	    let c_group = string_to_cpg_name(group)?;
 	    ffi::cpg::cpg_join(handle, &c_group)
 	};
     if res == ffi::cpg::CS_OK {
@@ -377,7 +388,7 @@ pub fn leave(handle: u64, group: &String) -> Result<()>
 {
     let res =
 	unsafe {
-	    let c_group = string_to_cpg_name(group);
+	    let c_group = string_to_cpg_name(group)?;
 	    ffi::cpg::cpg_leave(handle, &c_group)
 	};
     if res == ffi::cpg::CS_OK {
@@ -404,11 +415,10 @@ pub fn local_get(handle: u64) -> Result<u32>
 pub fn membership_get(handle: u64, group: &String) -> Result<Vec::<Address>>
 {
     let mut member_list_entries: i32 = 0;
-    let member_list = [ffi::cpg::cpg_address{nodeid:0,pid:0,reason:0}; CPG_MEMBERS_MAX];
+    let member_list = [ffi::cpg::cpg_address{nodeid:0, pid:0, reason:0}; CPG_MEMBERS_MAX];
     let res =
 	unsafe {
-	    // fill in the cpg_group struct
-	    let mut c_group = string_to_cpg_name(group);
+	    let mut c_group = string_to_cpg_name(group)?;
 	    let c_memlist = member_list.as_ptr() as *mut ffi::cpg::cpg_address;
 	    ffi::cpg::cpg_membership_get(handle, &mut c_group,
 					 &mut *c_memlist,
@@ -585,22 +595,21 @@ impl CpgIterStart {
 	let mut iter_handle : u64 = 0;
 	let res =
 	    unsafe {
-		let mut c_group = string_to_cpg_name(group);
+		let mut c_group = string_to_cpg_name(group)?;
 		let c_itertype = iter_type as u32;
-		// 'All' requires that the group pointer is NULL
+		// IterType 'All' requires that the group pointer is passed in as NULL
 		let c_group_ptr = {
 		    match iter_type  {
 			CpgIterType::All => std::ptr::null_mut(),
 			_ => &mut c_group,
 		    }
 		};
-
 		ffi::cpg::cpg_iteration_initialize(cpg_handle, c_itertype, c_group_ptr, &mut iter_handle)
 	    };
 	if res == ffi::cpg::CS_OK {
 	    Ok(CpgIterStart{iter_handle})
 	} else {
-	    Err(CsError::try_from(res).unwrap())
+	    Err(cs_error_to_enum(res))
 	}
     }
 }
