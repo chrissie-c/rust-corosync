@@ -6,6 +6,7 @@ use std::fmt;
 use num_enum::TryFromPrimitive;
 
 // This needs to be kept up-to-date!
+/// Error codes returned from the corosync libraries
 #[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u32)]
 pub enum CsError {
@@ -81,6 +82,8 @@ impl fmt::Display for CsError {
     }
 }
 
+
+/// flags to use with dispatch functions, eg [cpg::dispatch]
 #[derive(Copy, Clone)]
 // The numbers match the C enum, of course.
 pub enum DispatchFlags {

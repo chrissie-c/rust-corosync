@@ -21,16 +21,20 @@ use std::ptr::copy_nonoverlapping;
 use std::slice;
 use std::fmt;
 
+// General corosync things
 use crate::{CsError, DispatchFlags, Result};
 
 const CPG_NAMELEN_MAX: usize = 128;
 const CPG_MEMBERS_MAX: usize = 128;
 
+
+/// RingId returned by totem_confchg_fn
 pub struct RingId {
     pub nodeid: u32,
     pub seq: u64,
 }
 
+/// Totem delivery guarantee for mcast_joined
 // The C enum doesn't have numbers in the code
 // so don't assume we can match them
 pub enum Guarantee {
@@ -40,6 +44,7 @@ pub enum Guarantee {
     TypeSafe,
 }
 
+// Convert internal to cpg.h values.
 impl Guarantee {
     pub fn to_c (&self) -> u32 {
 	match self {
@@ -51,6 +56,7 @@ impl Guarantee {
     }
 }
 
+///
 pub enum FlowControlState {
     Disabled,
     Enabled
@@ -61,6 +67,7 @@ pub enum Model1Flags {
     None,
 }
 
+/// Reason for cpg item callback
 pub enum Reason {
     Undefined = 0,
     Join = 1,
@@ -70,6 +77,7 @@ pub enum Reason {
     ProcDown = 5,
 }
 
+// Convert to cpg.h values
 impl Reason {
     pub fn new(r: u32) ->Reason {
 	match r {
@@ -96,6 +104,7 @@ impl fmt::Display for Reason {
     }
 }
 
+/// A CPG address entry
 pub struct Address {
     pub nodeid: u32,
     pub pid: u32,
@@ -107,6 +116,7 @@ impl fmt::Debug for Address {
     }
 }
 
+/// Data for model1 initialize()
 #[derive(Copy, Clone)]
 pub struct Model1Data {
     pub flags: Model1Flags,
@@ -138,7 +148,7 @@ pub enum ModelData {
 
 // Our CPG internal state
 #[derive(Copy, Clone)]
-pub struct Handle {
+struct Handle {
     _cpg_handle: u64, // We *might* need this??
     model_data: ModelData,
 }
@@ -293,6 +303,10 @@ fn cs_error_to_enum(cserr: u32) -> CsError
 }
 
 // Returns the actual CPG handle as .. well, it's easier than inventing something else
+/// Initialize a connection to cpg
+/// model_data: The type of initialization, and callbacks
+/// context:  arbitrary value returned in callbacks
+/// Returns a handle into the CPG library
 pub fn initialize(model_data: &ModelData, context: u64) -> Result<u64>
 {
     let mut handle: ffi::cpg::cpg_handle_t = 0;
@@ -327,6 +341,8 @@ pub fn initialize(model_data: &ModelData, context: u64) -> Result<u64>
     }
 }
 
+/// Finish with a connection to corosync
+/// handle: a cpg handle as returned from [initialize]
 pub fn finalize(handle: u64) -> Result<()>
 {
     HANDLE_HASH.lock().unwrap().remove(&handle);
@@ -342,6 +358,9 @@ pub fn finalize(handle: u64) -> Result<()>
 }
 
 // Not sure if an FD is the right thing to return here, but it will do for now.
+/// Return a file descriptor to use for poll/select on the CPG handle
+/// handle: cpg handle from [initialize]
+/// return: file descriptor
 pub fn fd_get(handle: u64) -> Result<i32>
 {
     let c_fd: *mut c_int = &mut 0 as *mut _ as *mut c_int;
@@ -356,6 +375,9 @@ pub fn fd_get(handle: u64) -> Result<i32>
     }
 }
 
+/// Display any/all active CPG callbacks
+/// handle: a cpg handle as returned from [initialize]
+/// flags: [DispatchFlags]
 pub fn dispatch(handle: u64, flags: DispatchFlags) -> Result<()>
 {
     let res =
@@ -369,7 +391,9 @@ pub fn dispatch(handle: u64, flags: DispatchFlags) -> Result<()>
     }
 }
 
-
+/// Joins a CPG group, for sending messages
+/// handle: a cpg handle as returned from [initialize]
+/// group: name of the group to join
 pub fn join(handle: u64, group: &String) -> Result<()>
 {
     let res =
@@ -384,6 +408,9 @@ pub fn join(handle: u64, group: &String) -> Result<()>
     }
 }
 
+/// Leave the currently joined CPG group
+/// handle: a cpg handle as returned from [initialize]
+/// group: name of the group to join
 pub fn leave(handle: u64, group: &String) -> Result<()>
 {
     let res =
@@ -398,6 +425,9 @@ pub fn leave(handle: u64, group: &String) -> Result<()>
     }
 }
 
+/// Get the local node ID
+/// handle: a cpg handle as returned from [initialize]
+/// return: the local nodeid as a [u32]
 pub fn local_get(handle: u64) -> Result<u32>
 {
     let mut nodeid: u32 = 0;
@@ -412,6 +442,9 @@ pub fn local_get(handle: u64) -> Result<u32>
     }
 }
 
+/// Get a list of members of a CPG group
+/// handle: a cpg handle as returned from [initialize]
+/// group: The name of the group to get members for
 pub fn membership_get(handle: u64, group: &String) -> Result<Vec::<Address>>
 {
     let mut member_list_entries: i32 = 0;
@@ -431,6 +464,10 @@ pub fn membership_get(handle: u64, group: &String) -> Result<Vec::<Address>>
     }
 }
 
+/// Get the macimum size that CPG can send in one corosync mesage,
+/// any messages sent via [mcast_joined] that are larger than this
+/// will be fragmented
+/// handle: a cpg handle as returned from [initialize]
 pub fn max_atomic_msgsize_get(handle: u64) -> Result<u32>
 {
     let mut asize: u32 = 0;
@@ -445,6 +482,10 @@ pub fn max_atomic_msgsize_get(handle: u64) -> Result<u32>
     }
 }
 
+/// Get the current 'context' value for this handle
+/// The context value is an arbitrary value that is always passed
+/// back to callbacks to help identify the source
+/// handle: a cpg handle as returned from [initialize]
 pub fn context_get(handle: u64) -> Result<u64>
 {
     let mut c_context: *mut c_void = &mut 0u64 as *mut _ as *mut c_void;
@@ -461,6 +502,11 @@ pub fn context_get(handle: u64) -> Result<u64>
     }
 }
 
+/// Set the current 'context' value for this handle
+/// The context value is an arbitrary value that is always passed
+/// back to callbacks to help identify the source.
+/// Normally this is set in [initialize], but this allows it to be changed
+/// handle: a cpg handle as returned from [initialize]
 pub fn context_set(handle: u64, context: u64) -> Result<()>
 {
     let res =
@@ -475,6 +521,8 @@ pub fn context_set(handle: u64, context: u64) -> Result<()>
     }
 }
 
+/// Get the flow control state of corosync
+/// handle: a cpg handle as returned from [initialize]
 pub fn flow_control_state_get(handle: u64) -> Result<bool>
 {
     let mut fc_state: u32 = 0;
@@ -493,6 +541,10 @@ pub fn flow_control_state_get(handle: u64) -> Result<bool>
     }
 }
 
+/// Send a message to the current joined CPG group
+/// handle: a cpg handle as returned from [initialize]
+/// guarantee: THe message guarantee type
+/// the message to send
 pub fn mcast_joined(handle: u64, guarantee: Guarantee,
 		    msg: &[u8]) -> Result<()>
 {
@@ -513,6 +565,7 @@ pub fn mcast_joined(handle: u64, guarantee: Guarantee,
     }
 }
 
+/// Type of iteration for [CpgIterStart]
 #[derive(Copy, Clone)]
 pub enum CpgIterType
 {
@@ -524,11 +577,13 @@ pub enum CpgIterType
 // Iterator based on information on this page. thank you!
 // https://stackoverflow.com/questions/30218886/how-to-implement-iterator-and-intoiterator-for-a-simple-struct
 // Object to iterate over
+/// An object to iterate over a list of CPG groups, create one of these and then use 'for' over it
 pub struct CpgIterStart
 {
     iter_handle: u64,
 }
 
+/// struct returned from iterating over a [CpgIterStart]
 pub struct CpgIter
 {
     pub group: String,
@@ -536,7 +591,7 @@ pub struct CpgIter
     pub pid: u32,
 }
 
-pub struct CpgIntoIter
+struct CpgIntoIter
 {
     iter_handle: u64,
 }
@@ -590,6 +645,7 @@ impl Iterator for CpgIntoIter {
 }
 
 impl CpgIterStart {
+    /// Create a new [CpgIterStart] object for iterating over a list of CPG groups
     pub fn new(cpg_handle: u64, group: &String, iter_type: CpgIterType) -> Result<CpgIterStart>
     {
 	let mut iter_handle : u64 = 0;
