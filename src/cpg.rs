@@ -591,7 +591,7 @@ pub struct CpgIter
     pub pid: u32,
 }
 
-struct CpgIntoIter
+pub struct CpgIntoIter
 {
     iter_handle: u64,
 }
@@ -617,7 +617,10 @@ impl Iterator for CpgIntoIter {
 		// This is a bit of a messy way to get the string out of the internals of
 		// cpg_iteration_description, but we need to fully copy it, not shallow copy it.
 		let mut bytes: [u8;CPG_NAMELEN_MAX] = [0;CPG_NAMELEN_MAX];
-		copy_nonoverlapping(c_iter_description.group.value.as_ptr(), bytes.as_mut_ptr(), CPG_NAMELEN_MAX);
+
+		// Messy casting on both parts of the copy here to get it to work on both signed
+		// and unsigned char machines
+		copy_nonoverlapping(c_iter_description.group.value.as_ptr() as *mut i8, bytes.as_mut_ptr() as *mut i8, CPG_NAMELEN_MAX);
 		let cs = match CString::new(&bytes[0..c_iter_description.group.length as usize]) {
 		    Ok(c1) => c1,
 		    Err(_) => return None,
