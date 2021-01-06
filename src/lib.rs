@@ -1,9 +1,11 @@
 #[macro_use]
 extern crate lazy_static;
 pub mod cpg;
+pub mod quorum;
 
 use std::fmt;
 use num_enum::TryFromPrimitive;
+use std::convert::TryFrom;
 
 // This needs to be kept up-to-date!
 /// Error codes returned from the corosync libraries
@@ -82,6 +84,16 @@ impl fmt::Display for CsError {
     }
 }
 
+// This is dependant on the num_enum crate, converts a C cs_error_t into the Rust enum
+// There seems to be some debate as to whether this should be part of the language:
+// https://internals.rust-lang.org/t/pre-rfc-enum-from-integer/6348/25
+fn cs_error_to_enum(cserr: u32) -> CsError
+{
+    match CsError::try_from(cserr) {
+	Ok(e) => e,
+	Err(_) => CsError::CsErrRustCompat
+    }
+}
 
 /// flags to use with dispatch functions, eg [cpg::dispatch]
 #[derive(Copy, Clone)]
@@ -93,3 +105,10 @@ pub enum DispatchFlags {
     OneNonblocking = 4,
 }
 
+#[derive(Copy, Clone)]
+// Same here
+pub enum TrackFlags {
+    Current = 1,
+    Changes = 2,
+    ChangesOnly = 4,
+}

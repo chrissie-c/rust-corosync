@@ -11,7 +11,6 @@
 extern crate rust_corosync_sys as ffi;
 use rust_corosync_sys::cpg::cpg_model_data_t;
 
-use std::convert::TryFrom;
 use std::collections::HashMap;
 use std::os::raw::{c_void, c_int};
 use std::sync::Mutex;
@@ -23,6 +22,7 @@ use std::fmt;
 
 // General corosync things
 use crate::{CsError, DispatchFlags, Result};
+use crate::cs_error_to_enum;
 
 const CPG_NAMELEN_MAX: usize = 128;
 const CPG_MEMBERS_MAX: usize = 128;
@@ -288,17 +288,6 @@ extern "C" fn rust_totem_confchg_fn(handle: ffi::cpg::cpg_handle_t,
 	    }
 	}
 	None => {}
-    }
-}
-
-// This is dependant on the num_enum crate, converts a C cs_error_t into the Rust enum
-// There seems to be some debate as to whether this should be part of the language:
-// https://internals.rust-lang.org/t/pre-rfc-enum-from-integer/6348/25
-fn cs_error_to_enum(cserr: u32) -> CsError
-{
-    match CsError::try_from(cserr) {
-	Ok(e) => e,
-	Err(_) => CsError::CsErrRustCompat
     }
 }
 

@@ -1,5 +1,7 @@
 target/*
+rust-corosync-sys/target/*
 tests/target/*
 Cargo.lock
 tests/Cargo.lock
 TAGS
+*~
