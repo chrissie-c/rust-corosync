@@ -18,7 +18,7 @@ use std::ffi::{CString};
 use std::ptr::copy_nonoverlapping;
 use std::fmt;
 
-use crate::{DispatchFlags, TrackFlags, Result};
+use crate::{CsError, DispatchFlags, TrackFlags, Result};
 use crate::cs_error_to_enum;
 
 
@@ -454,6 +454,142 @@ pub fn set_votes(handle: u64, nodeid: u32, votes: u32) -> Result<()>
     let res =
 	unsafe {
 	    ffi::votequorum::votequorum_setvotes(handle, nodeid, votes)
+	};
+    if res == ffi::votequorum::CS_OK {
+	Ok(())
+    } else {
+	Err(cs_error_to_enum(res))
+    }
+}
+
+
+/// Register a quorum device
+/// handle: a handle as returned from [initialize]
+/// name: name of the device to register
+pub fn qdevice_register(handle: u64, name: &String) -> Result<()>
+{
+    let c_string = {
+	match CString::new(name.as_str()) {
+	    Ok(cs) => cs,
+	    Err(_) => return Err(CsError::CsErrInvalidParam),
+	}
+    };
+
+    let res =
+	unsafe {
+	    ffi::votequorum::votequorum_qdevice_register(handle, c_string. as_ptr())
+	};
+    if res == ffi::votequorum::CS_OK {
+	Ok(())
+    } else {
+	Err(cs_error_to_enum(res))
+    }
+}
+
+
+/// Unregister a quorum device
+/// handle: a handle as returned from [initialize]
+/// name: name of the device to unregister
+pub fn qdevice_unregister(handle: u64, name: &String) -> Result<()>
+{
+    let c_string = {
+	match CString::new(name.as_str()) {
+	    Ok(cs) => cs,
+	    Err(_) => return Err(CsError::CsErrInvalidParam),
+	}
+    };
+
+    let res =
+	unsafe {
+	    ffi::votequorum::votequorum_qdevice_unregister(handle, c_string. as_ptr())
+	};
+    if res == ffi::votequorum::CS_OK {
+	Ok(())
+    } else {
+	Err(cs_error_to_enum(res))
+    }
+}
+
+/// Update the name of a quorum device
+/// handle: a handle as returned from [initialize]
+/// oldname: name of the device to rename
+/// newname: new name
+pub fn qdevice_update(handle: u64, oldname: &String, newname: &String) -> Result<()>
+{
+    let on_string = {
+	match CString::new(oldname.as_str()) {
+	    Ok(cs) => cs,
+	    Err(_) => return Err(CsError::CsErrInvalidParam),
+	}
+    };
+    let nn_string = {
+	match CString::new(newname.as_str()) {
+	    Ok(cs) => cs,
+	    Err(_) => return Err(CsError::CsErrInvalidParam),
+	}
+    };
+
+    let res =
+	unsafe {
+	    ffi::votequorum::votequorum_qdevice_update(handle, on_string.as_ptr(), nn_string.as_ptr())
+	};
+    if res == ffi::votequorum::CS_OK {
+	Ok(())
+    } else {
+	Err(cs_error_to_enum(res))
+    }
+}
+
+
+/// Poll a quorum device
+/// handle: a handle as returned from [initialize]
+/// name: name of the device to poll
+/// cast_vote: Whether to cast a vote for the quorum device
+/// ring_id: Ring_Id for this poll.. Must match the current cluster ring_id
+pub fn qdevice_poll(handle: u64, name: &String, cast_vote: bool, ring_id: &RingId) -> Result<()>
+{
+    let c_string = {
+	match CString::new(name.as_str()) {
+	    Ok(cs) => cs,
+	    Err(_) => return Err(CsError::CsErrInvalidParam),
+	}
+    };
+
+    let c_cast_vote : u32 = if cast_vote {1} else {0};
+    let c_ring_id = ffi::votequorum::votequorum_ring_id_t {
+	nodeid: ring_id.nodeid,
+	seq: ring_id.seq};
+
+    let res =
+	unsafe {
+	    ffi::votequorum::votequorum_qdevice_poll(handle, c_string.as_ptr(), c_cast_vote, c_ring_id)
+	};
+    if res == ffi::votequorum::CS_OK {
+	Ok(())
+    } else {
+	Err(cs_error_to_enum(res))
+    }
+}
+
+
+/// Allow qdevice to tell votequorum if master_wins can be enabled or not
+/// handle: a handle as returned from [initialize]
+/// name: name of the device
+/// cast_vote: Whether to allow master_wins
+pub fn qdevice_master_wins(handle: u64, name: &String, master_wins: bool) -> Result<()>
+{
+    let c_string = {
+	match CString::new(name.as_str()) {
+	    Ok(cs) => cs,
+	    Err(_) => return Err(CsError::CsErrInvalidParam),
+	}
+    };
+
+    let c_master_wins : u32 = if master_wins {1} else {0};
+
+    let res =
+	unsafe {
+	    ffi::votequorum::votequorum_qdevice_master_wins(handle, c_string.as_ptr(), c_master_wins)
 	};
     if res == ffi::votequorum::CS_OK {
 	Ok(())

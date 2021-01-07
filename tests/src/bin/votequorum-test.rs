@@ -74,6 +74,14 @@ fn main() {
 	}
     }
 
+    const QDEVICE_NAME : &str = "RustQdevice";
+
+    match votequorum::qdevice_register(handle, &QDEVICE_NAME.to_string()) {
+	Ok(_) => {},
+	Err(e) => {
+	    println!("Error in VOTEQUORUM qdevice_register: {}", e);
+	}
+    }
 
     match votequorum::get_info(handle, 1 as u32) {
 	Ok(i) => {
@@ -87,9 +95,20 @@ fn main() {
 	    println!("  flags: {:x}", i.flags);
 	    println!("  qdevice_votes: {}", i.qdevice_votes);
 	    println!("  qdevice_name: {}", i.qdevice_name);
+
+	    if i.qdevice_name != QDEVICE_NAME {
+		println!("qdevice names do not match: s/b: \"{}\"  is: \"{}\"", QDEVICE_NAME, i.qdevice_name);
+	    }
 	},
 	Err(e) => {
-	    println!("Error in VOTEQUORUM get_info: {}", e);
+	    println!("Error in VOTEQUORUM get_info: {} (check nodeid 1 has been online)", e);
+	}
+    }
+
+    match votequorum::qdevice_unregister(handle, &QDEVICE_NAME.to_string()) {
+	Ok(_) => {},
+	Err(e) => {
+	    println!("Error in VOTEQUORUM qdevice_unregister: {}", e);
 	}
     }
 
