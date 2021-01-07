@@ -16,3 +16,8 @@ bench = false
 name = "quorum-test"
 test = false
 bench = false
+
+[[bin]]
+name = "votequorum-test"
+test = false
+bench = false
