@@ -3,6 +3,7 @@ extern crate lazy_static;
 pub mod cpg;
 pub mod quorum;
 pub mod votequorum;
+pub mod cfg;
 
 use std::fmt;
 use num_enum::TryFromPrimitive;

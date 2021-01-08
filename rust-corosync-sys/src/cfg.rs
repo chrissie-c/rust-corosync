@@ -1189,6 +1189,44 @@ extern "C" {
         interface_count: *mut ::std::os::raw::c_uint,
     ) -> cs_error_t;
 }
+pub const CFG_NODE_STATUS_V1: corosync_cfg_node_status_version_t = 1;
+pub type corosync_cfg_node_status_version_t = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct corosync_knet_link_status_v1 {
+    pub enabled: u8,
+    pub connected: u8,
+    pub dynconnected: u8,
+    pub mtu: ::std::os::raw::c_uint,
+    pub src_ipaddr: [::std::os::raw::c_char; 256usize],
+    pub dst_ipaddr: [::std::os::raw::c_char; 256usize],
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct corosync_cfg_node_status_v1 {
+    pub version: corosync_cfg_node_status_version_t,
+    pub nodeid: ::std::os::raw::c_uint,
+    pub reachable: u8,
+    pub remote: u8,
+    pub external: u8,
+    pub onwire_min: u8,
+    pub onwire_max: u8,
+    pub onwire_ver: u8,
+    pub link_status: [corosync_knet_link_status_v1; 8usize],
+}
+extern "C" {
+    #[doc = " @brief corosync_cfg_node_status_get"]
+    #[doc = " @param cfg_handle"]
+    #[doc = " @param nodeid"]
+    #[doc = " @param node_status"]
+    #[doc = " @return"]
+    pub fn corosync_cfg_node_status_get(
+        cfg_handle: corosync_cfg_handle_t,
+        nodeid: ::std::os::raw::c_uint,
+        version: corosync_cfg_node_status_version_t,
+        node_status: *mut ::std::os::raw::c_void,
+    ) -> cs_error_t;
+}
 extern "C" {
     #[doc = " @brief corosync_cfg_kill_node"]
     #[doc = " @param cfg_handle"]
