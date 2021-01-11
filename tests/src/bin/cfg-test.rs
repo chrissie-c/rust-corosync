@@ -8,15 +8,12 @@ use std::thread::spawn;
 fn dispatch_thread(handle: u64)
 {
     loop {
-	println!("Calling dispatch");
 	match cfg::dispatch(handle, corosync::DispatchFlags::One) {
 	    Ok(_) => {}
 	    Err(_) => return,
 	}
-	println!("Called dispatch");
     }
 }
-
 
 // Test the shutdown callback
 fn shutdown_check_fn(handle:u64, _flags: u32)
@@ -64,8 +61,16 @@ fn main()
 		return;
 	    }
 	};
-    // Run handle2 dispatch in its own thread
-    spawn(move || dispatch_thread(handle2));
+
+    match cfg::track_start(handle2, cfg::TrackFlags::None) {
+	Ok(_) => {
+	    // Run handle2 dispatch in its own thread
+	    spawn(move || dispatch_thread(handle2));
+	}
+	Err(e) => {
+	    println!("Error in CFG track_start: {}", e);
+	}
+    };
 
     let our_nodeid = {
 	match cfg::local_get(handle) {
@@ -80,9 +85,19 @@ fn main()
 	}
     };
 
-    // Get node info for us
+    // Test node_status_get.
+    // node status for the local node looks odd (cos it's the loopback connection), so
+    // we try for a node ID one less or more than us just to get output that looks
+    // sensible to the user.
     if our_nodeid != 0 {
-	match cfg::node_status_get(handle, our_nodeid, cfg::NodeStatusVersion::V1) {
+	let mut res = cfg::node_status_get(handle, our_nodeid+1, cfg::NodeStatusVersion::V1);
+	match res {
+	    Ok(_) => {},
+	    Err(_e) => {
+	    	res = cfg::node_status_get(handle, our_nodeid-1, cfg::NodeStatusVersion::V1);
+	    }
+	};
+	match res {
 	    Ok(ns) => {
 		println!("Node Status for nodeid {}", ns.nodeid);
 		println!("   reachable: {}", ns.reachable);
@@ -92,7 +107,6 @@ fn main()
 		println!("   onwire_ver: {}", ns.onwire_ver);
 		let mut ls_num = 0;
 		for ls in ns.link_status {
-		    ls_num += 1;
 		    if ls.enabled {
 			println!("   Link {}", ls_num);
 			println!("      connected: {}", ls.connected);
@@ -100,24 +114,27 @@ fn main()
 			println!("      src: {}", ls.src_ipaddr);
 			println!("      dst: {}", ls.dst_ipaddr);
 		    }
+		    ls_num += 1;
 		}
 	    }
 	    Err(e) => {
-		println!("Error in CFG node_status get: {}", e);
+		println!("Error in CFG node_status get: {} (tried nodeids {} & {})", e,
+			 our_nodeid-1, our_nodeid+1);
 	    }
 	}
     }
 
-// -- corosync_cfg_tryshutdown() is currently broken in the daemon (since 2012)
-// 815375411e80131f31b172d7c43625769ee8b53d
-    
-// This should not shutdown corosync because the callback on handle2 will refuse it.
-//    match cfg::try_shutdown(handle, cfg::ShutdownFlags::Request) {
-//	Ok(_) => {},
-//	    Err(e) => {
-//		println!("Error in CFG try_shutdown: {}", e);
-//	    }
-//  }
+    // This should not shutdown corosync because the callback on handle2 will refuse it.
+    match cfg::try_shutdown(handle, cfg::ShutdownFlags::Request) {
+	Ok(_) => {
+	    println!("CFG try_shutdown suceeded, should return busy");
+	},
+	Err(e) => {
+	    if e != corosync::CsError::CsErrBusy {
+		println!("Error in CFG try_shutdown: {}", e);
+	    }
+	}
+    }
 
     // Wait for events
     loop {
@@ -126,5 +143,5 @@ fn main()
 	    Err(_) => break,
 	}
     }
-    println!("Corosync quit");
+    println!("ERROR: Corosync quit");
 }

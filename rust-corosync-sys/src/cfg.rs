@@ -1240,6 +1240,26 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
+    #[doc = " @brief corosync_cfg_trackstart"]
+    #[doc = " Track CFG for shutdown requests"]
+    #[doc = " @param cfg_handle"]
+    #[doc = " @param track_flags (none currently supported)"]
+    #[doc = " @param reason"]
+    #[doc = " @return"]
+    pub fn corosync_cfg_trackstart(
+        cfg_handle: corosync_cfg_handle_t,
+        track_flags: u8,
+    ) -> cs_error_t;
+}
+extern "C" {
+    #[doc = " @brief corosync_cfg_trackstop"]
+    #[doc = " Stop tracking CFG for shutdown requests"]
+    #[doc = " @param cfg_handle"]
+    #[doc = " @param reason"]
+    #[doc = " @return"]
+    pub fn corosync_cfg_trackstop(cfg_handle: corosync_cfg_handle_t) -> cs_error_t;
+}
+extern "C" {
     #[doc = " @brief corosync_cfg_try_shutdown"]
     #[doc = " @param cfg_handle"]
     #[doc = " @param flags"]

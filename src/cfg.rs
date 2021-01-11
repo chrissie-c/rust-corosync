@@ -53,6 +53,11 @@ pub enum ShutdownReply
     No = 0
 }
 
+pub enum TrackFlags
+{
+    None,
+}
+
 // These three for get_node_status
 pub enum NodeStatusVersion
 {
@@ -391,5 +396,36 @@ pub fn node_status_get(handle: u64, nodeid: u32, _version: NodeStatusVersion) ->
 	} else {
 	    Err(cs_error_to_enum(res))
 	}
+    }
+}
+
+/// Start tracking for shutdown notifications
+/// handle: a cfg handle as returned from [initialize]
+/// flags: currently not used
+pub fn track_start(handle: u64, _flags: TrackFlags) -> Result<()>
+{
+    let res =
+	unsafe {
+	    ffi::cfg::corosync_cfg_trackstart(handle, 0)
+	};
+    if res == ffi::cfg::CS_OK {
+	Ok(())
+    } else {
+	Err(cs_error_to_enum(res))
+    }
+}
+
+/// Stop tracking for shutdown notifications
+/// handle: a cfg handle as returned from [initialize]
+pub fn track_stop(handle: u64) -> Result<()>
+{
+    let res =
+	unsafe {
+	    ffi::cfg::corosync_cfg_trackstop(handle)
+	};
+    if res == ffi::cfg::CS_OK {
+	Ok(())
+    } else {
+	Err(cs_error_to_enum(res))
     }
 }
