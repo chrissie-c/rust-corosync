@@ -138,6 +138,10 @@ fn main() {
 
     // Wait for events
     loop {
-	cpg::dispatch(handle, corosync::DispatchFlags::All).unwrap();
+	match cpg::dispatch(handle, corosync::DispatchFlags::One) {
+	    Ok(_) => {}
+	    Err(_) => break,
+	}
     }
+    println!("ERROR: Corosync quit");
 }

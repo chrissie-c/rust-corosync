@@ -85,6 +85,10 @@ fn main() {
 
     // Wait for events
     loop {
-	quorum::dispatch(handle, corosync::DispatchFlags::All).unwrap();
+	match quorum::dispatch(handle, corosync::DispatchFlags::One) {
+	    Ok(_) => {}
+	    Err(_) => break,
+	}
     }
+    println!("ERROR: Corosync quit");
 }

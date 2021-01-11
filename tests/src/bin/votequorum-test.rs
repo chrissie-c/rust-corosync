@@ -122,6 +122,10 @@ fn main() {
 
     // Wait for events
     loop {
-	votequorum::dispatch(handle, corosync::DispatchFlags::All).unwrap();
+	match votequorum::dispatch(handle, corosync::DispatchFlags::One) {
+	    Ok(_) => {}
+	    Err(_) => break,
+	}
     }
+    println!("ERROR: Corosync quit");
 }
