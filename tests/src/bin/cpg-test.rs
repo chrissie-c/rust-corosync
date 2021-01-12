@@ -4,7 +4,7 @@ extern crate rust_corosync as corosync;
 use corosync::cpg;
 use std::str;
 
-fn deliver_fn(_handle: u64,
+fn deliver_fn(_handle: &cpg::Handle,
 	      group_name: String,
 	      nodeid: u32,
 	      pid: u32,
@@ -25,7 +25,7 @@ fn deliver_fn(_handle: u64,
     }
 }
 
-fn confchg_fn(_handle: u64,
+fn confchg_fn(_handle: &cpg::Handle,
 	      group_name: &str,
 	      member_list: Vec<cpg::Address>,
 	      left_list: Vec<cpg::Address>,
@@ -38,7 +38,7 @@ fn confchg_fn(_handle: u64,
 }
 
 
-fn totem_confchg_fn(_handle: u64,
+fn totem_confchg_fn(_handle: &cpg::Handle,
 		    ring_id: cpg::RingId,
 		    member_list: Vec<u32>)
 {

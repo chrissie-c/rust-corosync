@@ -26,14 +26,14 @@ lazy_static! {
 
 #[derive(Copy, Clone)]
 pub struct Callbacks {
-    pub corosync_cfg_shutdown_callback_fn: fn(hande: u64,
+    pub corosync_cfg_shutdown_callback_fn: fn(handle: &Handle,
 					      flags: u32)
 }
 
 // Our internal state
 #[derive(Copy, Clone)]
-struct Handle {
-    _cfg_handle: u64, // We *might* need this??
+pub struct Handle {
+    cfg_handle: u64,
     callbacks: Callbacks
 }
 
@@ -90,7 +90,7 @@ pub struct NodeStatus
 extern "C" fn rust_shutdown_notification_fn(handle: ffi::cfg::corosync_cfg_handle_t, flags: u32)
 {
     match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) => (h.callbacks.corosync_cfg_shutdown_callback_fn)(handle, flags),
+	Some(h) => (h.callbacks.corosync_cfg_shutdown_callback_fn)(h, flags),
 	None => {}
     }
 }
@@ -100,7 +100,7 @@ extern "C" fn rust_shutdown_notification_fn(handle: ffi::cfg::corosync_cfg_handl
 /// model_data: the type of initialization, and callbacks
 /// context:  arbitrary value returned in callbacks
 /// returns a handle into the cfg library
-pub fn initialize(callbacks: &Callbacks) -> Result<u64>
+pub fn initialize(callbacks: &Callbacks) -> Result<Handle>
 {
     let mut handle: ffi::cfg::corosync_cfg_handle_t = 0;
 
@@ -112,9 +112,9 @@ pub fn initialize(callbacks: &Callbacks) -> Result<u64>
 	let res = ffi::cfg::corosync_cfg_initialize(&mut handle,
 						    &mut c_callbacks);
 	if res == ffi::cfg::CS_OK {
-	    let rhandle = Handle{_cfg_handle: handle, callbacks: callbacks.clone()};
+	    let rhandle = Handle{cfg_handle: handle, callbacks: callbacks.clone()};
 	    HANDLE_HASH.lock().unwrap().insert(handle, rhandle);
-	    Ok(handle)
+	    Ok(rhandle)
 	} else {
 	    Err(cs_error_to_enum(res))
 	}
@@ -124,12 +124,12 @@ pub fn initialize(callbacks: &Callbacks) -> Result<u64>
 
 /// finish with a connection to corosync
 /// handle: a cfg handle as returned from [initialize]
-pub fn finalize(handle: u64) -> Result<()>
+pub fn finalize(handle: Handle) -> Result<()>
 {
-    HANDLE_HASH.lock().unwrap().remove(&handle);
+    HANDLE_HASH.lock().unwrap().remove(&handle.cfg_handle);
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_finalize(handle)
+	    ffi::cfg::corosync_cfg_finalize(handle.cfg_handle)
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(())
@@ -142,12 +142,12 @@ pub fn finalize(handle: u64) -> Result<()>
 /// return a file descriptor to use for poll/select on the cfg handle
 /// handle: cfg handle from [initialize]
 /// return: file descriptor
-pub fn fd_get(handle: u64) -> Result<i32>
+pub fn fd_get(handle: Handle) -> Result<i32>
 {
     let c_fd: *mut c_int = &mut 0 as *mut _ as *mut c_int;
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_fd_get(handle, c_fd)
+	    ffi::cfg::corosync_cfg_fd_get(handle.cfg_handle, c_fd)
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(c_fd as i32)
@@ -159,12 +159,12 @@ pub fn fd_get(handle: u64) -> Result<i32>
 /// get the local node id
 /// handle: a cfg handle as returned from [initialize]
 /// return: the local nodeid as a [u32]
-pub fn local_get(handle: u64) -> Result<u32>
+pub fn local_get(handle: Handle) -> Result<u32>
 {
     let mut nodeid: u32 = 0;
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_local_get(handle, &mut nodeid)
+	    ffi::cfg::corosync_cfg_local_get(handle.cfg_handle, &mut nodeid)
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(nodeid)
@@ -175,11 +175,11 @@ pub fn local_get(handle: u64) -> Result<u32>
 
 /// Reload the cluster configuration
 /// handle: a cfg handle as returned from [initialize]
-pub fn reload_cnfig(handle: u64) -> Result<()>
+pub fn reload_cnfig(handle: Handle) -> Result<()>
 {
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_reload_config(handle)
+	    ffi::cfg::corosync_cfg_reload_config(handle.cfg_handle)
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(())
@@ -190,11 +190,11 @@ pub fn reload_cnfig(handle: u64) -> Result<()>
 
 /// Re-open the cluster log files
 /// handle: a cfg handle as returned from [initialize]
-pub fn reopen_log_files(handle: u64) -> Result<()>
+pub fn reopen_log_files(handle: Handle) -> Result<()>
 {
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_reopen_log_files(handle)
+	    ffi::cfg::corosync_cfg_reopen_log_files(handle.cfg_handle)
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(())
@@ -208,7 +208,7 @@ pub fn reopen_log_files(handle: u64) -> Result<()>
 /// handle: a cfg handle as returned from [initialize]
 /// nodeid: Node Id of node to go away
 /// reason: Reason for node to leave the cluster (String)
-pub fn kill_node(handle: u64, nodeid: u32, reason: &String) -> Result<()>
+pub fn kill_node(handle: Handle, nodeid: u32, reason: &String) -> Result<()>
 {
     let c_string = {
 	match CString::new(reason.as_str()) {
@@ -219,7 +219,7 @@ pub fn kill_node(handle: u64, nodeid: u32, reason: &String) -> Result<()>
 
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_kill_node(handle, nodeid, c_string.as_ptr())
+	    ffi::cfg::corosync_cfg_kill_node(handle.cfg_handle, nodeid, c_string.as_ptr())
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(())
@@ -231,7 +231,7 @@ pub fn kill_node(handle: u64, nodeid: u32, reason: &String) -> Result<()>
 /// Ask this cluster node to shutdown. it may be refused by otherapplications
 /// handle: a cfg handle as returned from [initialize]
 /// flags:
-pub fn try_shutdown(handle: u64, flags: ShutdownFlags) -> Result<()>
+pub fn try_shutdown(handle: Handle, flags: ShutdownFlags) -> Result<()>
 {
     let c_flags = match flags {
 	ShutdownFlags::Request => 0,
@@ -240,7 +240,7 @@ pub fn try_shutdown(handle: u64, flags: ShutdownFlags) -> Result<()>
     };
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_try_shutdown(handle, c_flags)
+	    ffi::cfg::corosync_cfg_try_shutdown(handle.cfg_handle, c_flags)
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(())
@@ -253,7 +253,7 @@ pub fn try_shutdown(handle: u64, flags: ShutdownFlags) -> Result<()>
 /// Reply to a shutdown request
 /// handle: a cfg handle as returned from [initialize]
 /// flags:
-pub fn reply_to_shutdown(handle: u64, flags: ShutdownReply) -> Result<()>
+pub fn reply_to_shutdown(handle: Handle, flags: ShutdownReply) -> Result<()>
 {
     let c_flags = match flags {
 	ShutdownReply::No => 0,
@@ -261,7 +261,7 @@ pub fn reply_to_shutdown(handle: u64, flags: ShutdownReply) -> Result<()>
     };
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_replyto_shutdown(handle, c_flags)
+	    ffi::cfg::corosync_cfg_replyto_shutdown(handle.cfg_handle, c_flags)
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(())
@@ -273,11 +273,11 @@ pub fn reply_to_shutdown(handle: u64, flags: ShutdownReply) -> Result<()>
 /// Display any/all active CFG callbacks
 /// handle: a cfg handle as returned from [initialize]
 /// flags: [DispatchFlags]
-pub fn dispatch(handle: u64, flags: DispatchFlags) -> Result<()>
+pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
 {
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_dispatch(handle, flags as u32)
+	    ffi::cfg::corosync_cfg_dispatch(handle.cfg_handle, flags as u32)
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(())
@@ -371,7 +371,7 @@ fn new_ls() -> ffi::cfg::corosync_knet_link_status_v1
 /// nodeid: ID of node to get status info of
 /// version: version of structure we understand
 /// returns: status of the node as a [NodeStatus]
-pub fn node_status_get(handle: u64, nodeid: u32, _version: NodeStatusVersion) -> Result<NodeStatus>
+pub fn node_status_get(handle: Handle, nodeid: u32, _version: NodeStatusVersion) -> Result<NodeStatus>
 {
     // Currently only supports V1 struct
     unsafe {
@@ -388,7 +388,7 @@ pub fn node_status_get(handle: u64, nodeid: u32, _version: NodeStatusVersion) ->
 	    link_status: [new_ls(); 8],
 	};
 	
-	let res = ffi::cfg::corosync_cfg_node_status_get(handle, nodeid, 1, &mut c_nodestatus as *mut _ as *mut c_void);
+	let res = ffi::cfg::corosync_cfg_node_status_get(handle.cfg_handle, nodeid, 1, &mut c_nodestatus as *mut _ as *mut c_void);
 
 	if res == ffi::cfg::CS_OK {
 	    let ns = unpack_nodestatus(c_nodestatus);
@@ -402,11 +402,11 @@ pub fn node_status_get(handle: u64, nodeid: u32, _version: NodeStatusVersion) ->
 /// Start tracking for shutdown notifications
 /// handle: a cfg handle as returned from [initialize]
 /// flags: currently not used
-pub fn track_start(handle: u64, _flags: TrackFlags) -> Result<()>
+pub fn track_start(handle: Handle, _flags: TrackFlags) -> Result<()>
 {
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_trackstart(handle, 0)
+	    ffi::cfg::corosync_cfg_trackstart(handle.cfg_handle, 0)
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(())
@@ -417,11 +417,11 @@ pub fn track_start(handle: u64, _flags: TrackFlags) -> Result<()>
 
 /// Stop tracking for shutdown notifications
 /// handle: a cfg handle as returned from [initialize]
-pub fn track_stop(handle: u64) -> Result<()>
+pub fn track_stop(handle: Handle) -> Result<()>
 {
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_trackstop(handle)
+	    ffi::cfg::corosync_cfg_trackstop(handle.cfg_handle)
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(())

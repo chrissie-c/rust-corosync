@@ -5,7 +5,7 @@ use corosync::cfg;
 
 use std::thread::spawn;
 
-fn dispatch_thread(handle: u64)
+fn dispatch_thread(handle: cfg::Handle)
 {
     loop {
 	match cfg::dispatch(handle, corosync::DispatchFlags::One) {
@@ -16,12 +16,12 @@ fn dispatch_thread(handle: u64)
 }
 
 // Test the shutdown callback
-fn shutdown_check_fn(handle:u64, _flags: u32)
+fn shutdown_check_fn(handle: &cfg::Handle, _flags: u32)
 {
     println!("in shutdown callback");
 
     // DON'T shutdown corosync - we're just testing
-    match cfg::reply_to_shutdown(handle, cfg::ShutdownReply::No) {
+    match cfg::reply_to_shutdown(*handle, cfg::ShutdownReply::No) {
 	Ok(_) => {},
 	Err(e) => {
 	    println!("Error in CFG replyto_shutdown: {}", e);

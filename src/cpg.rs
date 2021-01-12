@@ -120,20 +120,20 @@ impl fmt::Debug for Address {
 #[derive(Copy, Clone)]
 pub struct Model1Data {
     pub flags: Model1Flags,
-    pub deliver_fn: fn(handle: u64,
+    pub deliver_fn: fn(handle: &Handle,
 		       group_name: String,
 		       nodeid: u32,
 		       pid: u32,
 		       msg: &[u8],
 		       msg_len: usize,
     ),
-    pub confchg_fn: fn(handle: u64,
+    pub confchg_fn: fn(handle: &Handle,
 		       group_name: &str,
 		       member_list: Vec<Address>,
 		       left_list: Vec<Address>,
 		       joined_list: Vec<Address>,
     ),
-    pub totem_confchg_fn: fn(handle: u64,
+    pub totem_confchg_fn: fn(handle: &Handle,
 			     ring_id: RingId,
 			     member_list: Vec<u32>,
     ),
@@ -146,10 +146,10 @@ pub enum ModelData {
 }
 
 
-// Our CPG internal state
+// Our CPG internal state and what gets passed back to the user as a handle
 #[derive(Copy, Clone)]
-struct Handle {
-    _cpg_handle: u64, // We *might* need this??
+pub struct Handle {
+    cpg_handle: u64, // Corosync library handle
     model_data: ModelData,
 }
 
@@ -217,7 +217,7 @@ extern "C" fn rust_deliver_fn(
 
 	    match h.model_data {
 		ModelData::ModelV1(md) =>
-		    (md.deliver_fn)(handle,
+		    (md.deliver_fn)(h,
 				    r_group_name.to_string(),
 				    nodeid,
 				    pid,
@@ -251,7 +251,7 @@ extern "C" fn rust_confchg_fn(handle: ffi::cpg::cpg_handle_t,
 
 	    match h.model_data {
 		ModelData::ModelV1(md) =>
-		    (md.confchg_fn)(handle,
+		    (md.confchg_fn)(h,
 				    &r_group_name.to_string(),
 				    r_member_list,
 				    r_left_list,
@@ -281,7 +281,7 @@ extern "C" fn rust_totem_confchg_fn(handle: ffi::cpg::cpg_handle_t,
 
 	    match h.model_data {
 		ModelData::ModelV1(md) =>
-		    (md.totem_confchg_fn)(handle,
+		    (md.totem_confchg_fn)(h,
 					  r_ring_id,
 					  r_member_list),
 		_ => {}
@@ -296,7 +296,7 @@ extern "C" fn rust_totem_confchg_fn(handle: ffi::cpg::cpg_handle_t,
 /// model_data: The type of initialization, and callbacks
 /// context:  arbitrary value returned in callbacks
 /// Returns a handle into the CPG library
-pub fn initialize(model_data: &ModelData, context: u64) -> Result<u64>
+pub fn initialize(model_data: &ModelData, context: u64) -> Result<Handle>
 {
     let mut handle: ffi::cpg::cpg_handle_t = 0;
     let mut m = match model_data {
@@ -321,9 +321,9 @@ pub fn initialize(model_data: &ModelData, context: u64) -> Result<u64>
 						 c_context);
 
 	if res == ffi::cpg::CS_OK {
-	    let rhandle = Handle{_cpg_handle: handle, model_data: *model_data};
+	    let rhandle = Handle{cpg_handle: handle, model_data: *model_data};
 	    HANDLE_HASH.lock().unwrap().insert(handle, rhandle);
-	    Ok(handle)
+	    Ok(rhandle)
 	} else {
 	    Err(cs_error_to_enum(res))
 	}
@@ -332,12 +332,12 @@ pub fn initialize(model_data: &ModelData, context: u64) -> Result<u64>
 
 /// Finish with a connection to corosync
 /// handle: a cpg handle as returned from [initialize]
-pub fn finalize(handle: u64) -> Result<()>
+pub fn finalize(handle: Handle) -> Result<()>
 {
-    HANDLE_HASH.lock().unwrap().remove(&handle);
+    HANDLE_HASH.lock().unwrap().remove(&handle.cpg_handle);
     let res =
 	unsafe {
-	    ffi::cpg::cpg_finalize(handle)
+	    ffi::cpg::cpg_finalize(handle.cpg_handle)
 	};
     if res == ffi::cpg::CS_OK {
 	Ok(())
@@ -350,12 +350,12 @@ pub fn finalize(handle: u64) -> Result<()>
 /// Return a file descriptor to use for poll/select on the CPG handle
 /// handle: cpg handle from [initialize]
 /// return: file descriptor
-pub fn fd_get(handle: u64) -> Result<i32>
+pub fn fd_get(handle: Handle) -> Result<i32>
 {
     let c_fd: *mut c_int = &mut 0 as *mut _ as *mut c_int;
     let res =
 	unsafe {
-	    ffi::cpg::cpg_fd_get(handle, c_fd)
+	    ffi::cpg::cpg_fd_get(handle.cpg_handle, c_fd)
 	};
     if res == ffi::cpg::CS_OK {
 	Ok(c_fd as i32)
@@ -367,11 +367,11 @@ pub fn fd_get(handle: u64) -> Result<i32>
 /// Display any/all active CPG callbacks
 /// handle: a cpg handle as returned from [initialize]
 /// flags: [DispatchFlags]
-pub fn dispatch(handle: u64, flags: DispatchFlags) -> Result<()>
+pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
 {
     let res =
 	unsafe {
-	    ffi::cpg::cpg_dispatch(handle, flags as u32)
+	    ffi::cpg::cpg_dispatch(handle.cpg_handle, flags as u32)
 	};
     if res == ffi::cpg::CS_OK {
 	Ok(())
@@ -383,12 +383,12 @@ pub fn dispatch(handle: u64, flags: DispatchFlags) -> Result<()>
 /// Joins a CPG group, for sending messages
 /// handle: a cpg handle as returned from [initialize]
 /// group: name of the group to join
-pub fn join(handle: u64, group: &String) -> Result<()>
+pub fn join(handle: Handle, group: &String) -> Result<()>
 {
     let res =
 	unsafe {
 	    let c_group = string_to_cpg_name(group)?;
-	    ffi::cpg::cpg_join(handle, &c_group)
+	    ffi::cpg::cpg_join(handle.cpg_handle, &c_group)
 	};
     if res == ffi::cpg::CS_OK {
 	Ok(())
@@ -400,12 +400,12 @@ pub fn join(handle: u64, group: &String) -> Result<()>
 /// Leave the currently joined CPG group
 /// handle: a cpg handle as returned from [initialize]
 /// group: name of the group to join
-pub fn leave(handle: u64, group: &String) -> Result<()>
+pub fn leave(handle: Handle, group: &String) -> Result<()>
 {
     let res =
 	unsafe {
 	    let c_group = string_to_cpg_name(group)?;
-	    ffi::cpg::cpg_leave(handle, &c_group)
+	    ffi::cpg::cpg_leave(handle.cpg_handle, &c_group)
 	};
     if res == ffi::cpg::CS_OK {
 	Ok(())
@@ -417,12 +417,12 @@ pub fn leave(handle: u64, group: &String) -> Result<()>
 /// Get the local node ID
 /// handle: a cpg handle as returned from [initialize]
 /// return: the local nodeid as a [u32]
-pub fn local_get(handle: u64) -> Result<u32>
+pub fn local_get(handle: Handle) -> Result<u32>
 {
     let mut nodeid: u32 = 0;
     let res =
 	unsafe {
-	    ffi::cpg::cpg_local_get(handle, &mut nodeid)
+	    ffi::cpg::cpg_local_get(handle.cpg_handle, &mut nodeid)
 	};
     if res == ffi::cpg::CS_OK {
 	Ok(nodeid)
@@ -434,7 +434,7 @@ pub fn local_get(handle: u64) -> Result<u32>
 /// Get a list of members of a CPG group
 /// handle: a cpg handle as returned from [initialize]
 /// group: The name of the group to get members for
-pub fn membership_get(handle: u64, group: &String) -> Result<Vec::<Address>>
+pub fn membership_get(handle: Handle, group: &String) -> Result<Vec::<Address>>
 {
     let mut member_list_entries: i32 = 0;
     let member_list = [ffi::cpg::cpg_address{nodeid:0, pid:0, reason:0}; CPG_MEMBERS_MAX];
@@ -442,7 +442,7 @@ pub fn membership_get(handle: u64, group: &String) -> Result<Vec::<Address>>
 	unsafe {
 	    let mut c_group = string_to_cpg_name(group)?;
 	    let c_memlist = member_list.as_ptr() as *mut ffi::cpg::cpg_address;
-	    ffi::cpg::cpg_membership_get(handle, &mut c_group,
+	    ffi::cpg::cpg_membership_get(handle.cpg_handle, &mut c_group,
 					 &mut *c_memlist,
 					 &mut member_list_entries)
 	};
@@ -457,12 +457,12 @@ pub fn membership_get(handle: u64, group: &String) -> Result<Vec::<Address>>
 /// any messages sent via [mcast_joined] that are larger than this
 /// will be fragmented
 /// handle: a cpg handle as returned from [initialize]
-pub fn max_atomic_msgsize_get(handle: u64) -> Result<u32>
+pub fn max_atomic_msgsize_get(handle: Handle) -> Result<u32>
 {
     let mut asize: u32 = 0;
     let res =
 	unsafe {
-	    ffi::cpg::cpg_max_atomic_msgsize_get(handle, &mut asize)
+	    ffi::cpg::cpg_max_atomic_msgsize_get(handle.cpg_handle, &mut asize)
 	};
     if res == ffi::cpg::CS_OK {
 	Ok(asize)
@@ -475,12 +475,12 @@ pub fn max_atomic_msgsize_get(handle: u64) -> Result<u32>
 /// The context value is an arbitrary value that is always passed
 /// back to callbacks to help identify the source
 /// handle: a cpg handle as returned from [initialize]
-pub fn context_get(handle: u64) -> Result<u64>
+pub fn context_get(handle: Handle) -> Result<u64>
 {
     let mut c_context: *mut c_void = &mut 0u64 as *mut _ as *mut c_void;
     let (res, context) =
 	unsafe {
-	    let r = ffi::cpg::cpg_context_get(handle, &mut c_context);
+	    let r = ffi::cpg::cpg_context_get(handle.cpg_handle, &mut c_context);
 	    let context: u64 = c_context as u64;
 	    (r, context)
 	};
@@ -496,12 +496,12 @@ pub fn context_get(handle: u64) -> Result<u64>
 /// back to callbacks to help identify the source.
 /// Normally this is set in [initialize], but this allows it to be changed
 /// handle: a cpg handle as returned from [initialize]
-pub fn context_set(handle: u64, context: u64) -> Result<()>
+pub fn context_set(handle: Handle, context: u64) -> Result<()>
 {
     let res =
 	unsafe {
 	    let c_context = context as *mut c_void;
-	    ffi::cpg::cpg_context_set(handle, c_context)
+	    ffi::cpg::cpg_context_set(handle.cpg_handle, c_context)
 	};
     if res == ffi::cpg::CS_OK {
 	Ok(())
@@ -512,12 +512,12 @@ pub fn context_set(handle: u64, context: u64) -> Result<()>
 
 /// Get the flow control state of corosync
 /// handle: a cpg handle as returned from [initialize]
-pub fn flow_control_state_get(handle: u64) -> Result<bool>
+pub fn flow_control_state_get(handle: Handle) -> Result<bool>
 {
     let mut fc_state: u32 = 0;
     let res =
 	unsafe {
-	    ffi::cpg::cpg_flow_control_state_get(handle, &mut fc_state)
+	    ffi::cpg::cpg_flow_control_state_get(handle.cpg_handle, &mut fc_state)
 	};
     if res == ffi::cpg::CS_OK {
 	if fc_state == 1 {
@@ -534,7 +534,7 @@ pub fn flow_control_state_get(handle: u64) -> Result<bool>
 /// handle: a cpg handle as returned from [initialize]
 /// guarantee: THe message guarantee type
 /// the message to send
-pub fn mcast_joined(handle: u64, guarantee: Guarantee,
+pub fn mcast_joined(handle: Handle, guarantee: Guarantee,
 		    msg: &[u8]) -> Result<()>
 {
     let c_iovec = ffi::cpg::iovec {
@@ -543,7 +543,7 @@ pub fn mcast_joined(handle: u64, guarantee: Guarantee,
     };
     let res =
 	unsafe {
-	    ffi::cpg::cpg_mcast_joined(handle,
+	    ffi::cpg::cpg_mcast_joined(handle.cpg_handle,
 				       guarantee.to_c(),
 				       &c_iovec, 1)
     };
@@ -638,7 +638,7 @@ impl Iterator for CpgIntoIter {
 
 impl CpgIterStart {
     /// Create a new [CpgIterStart] object for iterating over a list of CPG groups
-    pub fn new(cpg_handle: u64, group: &String, iter_type: CpgIterType) -> Result<CpgIterStart>
+    pub fn new(cpg_handle: Handle, group: &String, iter_type: CpgIterType) -> Result<CpgIterStart>
     {
 	let mut iter_handle : u64 = 0;
 	let res =
@@ -652,7 +652,7 @@ impl CpgIterStart {
 			_ => &mut c_group,
 		    }
 		};
-		ffi::cpg::cpg_iteration_initialize(cpg_handle, c_itertype, c_group_ptr, &mut iter_handle)
+		ffi::cpg::cpg_iteration_initialize(cpg_handle.cpg_handle, c_itertype, c_group_ptr, &mut iter_handle)
 	    };
 	if res == ffi::cpg::CS_OK {
 	    Ok(CpgIterStart{iter_handle})

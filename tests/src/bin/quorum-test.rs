@@ -4,7 +4,7 @@ extern crate rust_corosync as corosync;
 use corosync::quorum;
 //use std::str;
 
-fn quorum_fn(_handle: u64,
+fn quorum_fn(_handle: &quorum::Handle,
 	     quorate: bool,
 	     ring_id: quorum::RingId,
 	     member_list: Vec<u32>)
@@ -15,7 +15,7 @@ fn quorum_fn(_handle: u64,
 }
 
 
-fn nodelist_fn(_handle: u64,
+fn nodelist_fn(_handle: &quorum::Handle,
 	       ring_id: quorum::RingId,
 	       member_list: Vec<u32>,
 	       joined_list: Vec<u32>,

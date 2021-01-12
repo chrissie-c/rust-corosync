@@ -3,7 +3,7 @@
 extern crate rust_corosync as corosync;
 use corosync::votequorum;
 
-fn quorum_fn(_handle: u64,
+fn quorum_fn(_handle: &votequorum::Handle,
 	     _context: u64,
 	     quorate: bool,
 	     member_list: Vec<votequorum::Node>)
@@ -13,7 +13,7 @@ fn quorum_fn(_handle: u64,
 }
 
 
-fn nodelist_fn(_handle: u64,
+fn nodelist_fn(_handle: &votequorum::Handle,
 	       _context: u64,
 	       ring_id: votequorum::RingId,
 	       member_list: Vec<u32>)
@@ -22,7 +22,7 @@ fn nodelist_fn(_handle: u64,
     println!("  members: {:?}", member_list);
 }
 
-fn expectedvotes_fn(_handle: u64,
+fn expectedvotes_fn(_handle: &votequorum::Handle,
 		    _context: u64,
 		    expected_votes: u32)
 {
