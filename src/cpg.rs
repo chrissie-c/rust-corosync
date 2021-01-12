@@ -21,7 +21,7 @@ use std::slice;
 use std::fmt;
 
 // General corosync things
-use crate::{CsError, DispatchFlags, Result};
+use crate::{CsError, DispatchFlags, Result, NodeId};
 use crate::cs_error_to_enum;
 
 const CPG_NAMELEN_MAX: usize = 128;
@@ -30,7 +30,7 @@ const CPG_MEMBERS_MAX: usize = 128;
 
 /// RingId returned by totem_confchg_fn
 pub struct RingId {
-    pub nodeid: u32,
+    pub nodeid: NodeId,
     pub seq: u64,
 }
 
@@ -106,7 +106,7 @@ impl fmt::Display for Reason {
 
 /// A CPG address entry
 pub struct Address {
-    pub nodeid: u32,
+    pub nodeid: NodeId,
     pub pid: u32,
     pub reason: Reason,
 }
@@ -122,7 +122,7 @@ pub struct Model1Data {
     pub flags: Model1Flags,
     pub deliver_fn: fn(handle: &Handle,
 		       group_name: String,
-		       nodeid: u32,
+		       nodeid: NodeId,
 		       pid: u32,
 		       msg: &[u8],
 		       msg_len: usize,
@@ -135,7 +135,7 @@ pub struct Model1Data {
     ),
     pub totem_confchg_fn: fn(handle: &Handle,
 			     ring_id: RingId,
-			     member_list: Vec<u32>,
+			     member_list: Vec<NodeId>,
     ),
 }
 
@@ -187,7 +187,7 @@ fn cpg_array_to_vec(list: *const ffi::cpg::cpg_address, list_entries: usize) -> 
     let mut r_vec = Vec::<Address>::new();
 
     for i in 0..list_entries as usize {
-	let a: Address = Address {nodeid: temp[i].nodeid,
+	let a: Address = Address {nodeid: NodeId::from(temp[i].nodeid),
 				  pid: temp[i].pid,
 				  reason: Reason::new(temp[i].reason)};
 	r_vec.push(a);
@@ -219,7 +219,7 @@ extern "C" fn rust_deliver_fn(
 		ModelData::ModelV1(md) =>
 		    (md.deliver_fn)(h,
 				    r_group_name.to_string(),
-				    nodeid,
+				    NodeId::from(nodeid),
 				    pid,
 				    data,
 				    msg_len),
@@ -271,12 +271,12 @@ extern "C" fn rust_totem_confchg_fn(handle: ffi::cpg::cpg_handle_t,
 {
     match HANDLE_HASH.lock().unwrap().get(&handle) {
 	Some(h) =>  {
-	    let r_ring_id = RingId{nodeid: ring_id.nodeid,
+	    let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
 				   seq: ring_id.seq};
-	    let mut r_member_list = Vec::<u32>::new();
+	    let mut r_member_list = Vec::<NodeId>::new();
 	    let temp_members: &[u32] = unsafe { slice::from_raw_parts(member_list, member_list_entries as usize) };
 	    for i in 0..member_list_entries as usize {
-		r_member_list.push(temp_members[i]);
+		r_member_list.push(NodeId::from(temp_members[i]));
 	    }
 
 	    match h.model_data {
@@ -416,8 +416,8 @@ pub fn leave(handle: Handle, group: &String) -> Result<()>
 
 /// Get the local node ID
 /// handle: a cpg handle as returned from [initialize]
-/// return: the local nodeid as a [u32]
-pub fn local_get(handle: Handle) -> Result<u32>
+/// return: the local nodeid as a [NodeId]
+pub fn local_get(handle: Handle) -> Result<NodeId>
 {
     let mut nodeid: u32 = 0;
     let res =
@@ -425,7 +425,7 @@ pub fn local_get(handle: Handle) -> Result<u32>
 	    ffi::cpg::cpg_local_get(handle.cpg_handle, &mut nodeid)
 	};
     if res == ffi::cpg::CS_OK {
-	Ok(nodeid)
+	Ok(NodeId::from(nodeid))
     } else {
 	Err(cs_error_to_enum(res))
     }
@@ -576,7 +576,7 @@ pub struct CpgIterStart
 pub struct CpgIter
 {
     pub group: String,
-    pub nodeid: u32,
+    pub nodeid: NodeId,
     pub pid: u32,
 }
 
@@ -622,7 +622,7 @@ impl Iterator for CpgIntoIter {
 
 	    Some(CpgIter{
 			 group: r_group,
-			 nodeid: c_iter_description.nodeid,
+			 nodeid: NodeId::from(c_iter_description.nodeid),
 			 pid: c_iter_description.pid})
 	} else if res == ffi::cpg::CS_ERR_NO_SECTIONS { // End of list
 	    unsafe {

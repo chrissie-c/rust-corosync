@@ -114,3 +114,28 @@ pub enum TrackFlags {
     Changes = 2,
     ChangesOnly = 4,
 }
+
+
+#[derive(Copy, Clone, Debug)]
+pub struct NodeId {
+    id: u32,
+}
+
+impl fmt::Display for NodeId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	write!(f, "{}", self.id)
+    }
+}
+
+// Conversion from a NodeId to and from u32
+impl From<u32> for NodeId {
+    fn from(id: u32) -> NodeId {
+	NodeId{id}
+    }
+}
+
+impl From<NodeId> for u32 {
+    fn from(nodeid: NodeId) -> u32 {
+	nodeid.id
+    }
+}

@@ -1,12 +1,12 @@
 // Test the CPG library. Requires that corosync is running and that we are root.
 
 extern crate rust_corosync as corosync;
-use corosync::cpg;
+use corosync::{cpg, NodeId};
 use std::str;
 
 fn deliver_fn(_handle: &cpg::Handle,
 	      group_name: String,
-	      nodeid: u32,
+	      nodeid: NodeId,
 	      pid: u32,
 	      msg: &[u8],
 	      msg_len: usize)
@@ -40,7 +40,7 @@ fn confchg_fn(_handle: &cpg::Handle,
 
 fn totem_confchg_fn(_handle: &cpg::Handle,
 		    ring_id: cpg::RingId,
-		    member_list: Vec<u32>)
+		    member_list: Vec<NodeId>)
 {
     println!("TEST totem_confchg_fn called for {}/{}", ring_id.nodeid, ring_id.seq);
     println!("  members: {:?}", member_list);

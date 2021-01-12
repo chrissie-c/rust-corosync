@@ -16,7 +16,7 @@ fn quorum_fn(_handle: &votequorum::Handle,
 fn nodelist_fn(_handle: &votequorum::Handle,
 	       _context: u64,
 	       ring_id: votequorum::RingId,
-	       member_list: Vec<u32>)
+	       member_list: Vec<corosync::NodeId>)
 {
     println!("TEST nodelist_fn called for {}/{}", ring_id.nodeid, ring_id.seq);
     println!("  members: {:?}", member_list);
@@ -83,7 +83,7 @@ fn main() {
 	}
     }
 
-    match votequorum::get_info(handle, 1 as u32) {
+    match votequorum::get_info(handle, corosync::NodeId::from(1u32)) {
 	Ok(i) => {
 	    println!("Node info for nodeid 1");
 	    println!("  nodeid: {}", i.node_id);

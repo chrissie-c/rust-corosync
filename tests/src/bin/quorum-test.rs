@@ -1,13 +1,13 @@
 // Test the QUORUM library. Requires that corosync is running and that we are root.
 
 extern crate rust_corosync as corosync;
-use corosync::quorum;
-//use std::str;
+use corosync::{quorum, NodeId};
+
 
 fn quorum_fn(_handle: &quorum::Handle,
 	     quorate: bool,
 	     ring_id: quorum::RingId,
-	     member_list: Vec<u32>)
+	     member_list: Vec<NodeId>)
 {
     println!("TEST quorum_fn called. quorate = {}", quorate);
     println!("  ring_id: {}/{}", ring_id.nodeid, ring_id.seq);
@@ -17,9 +17,9 @@ fn quorum_fn(_handle: &quorum::Handle,
 
 fn nodelist_fn(_handle: &quorum::Handle,
 	       ring_id: quorum::RingId,
-	       member_list: Vec<u32>,
-	       joined_list: Vec<u32>,
-	       left_list: Vec<u32>)
+	       member_list: Vec<NodeId>,
+	       joined_list: Vec<NodeId>,
+	       left_list: Vec<NodeId>)
 {
     println!("TEST nodelist_fn called for {}/{}", ring_id.nodeid, ring_id.seq);
     println!("  members: {:?}", member_list);

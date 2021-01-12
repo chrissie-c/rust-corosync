@@ -1,7 +1,7 @@
 // Test the CFG library. Requires that corosync is running and that we are root.
 
 extern crate rust_corosync as corosync;
-use corosync::cfg;
+use corosync::{cfg, NodeId};
 
 use std::thread::spawn;
 
@@ -72,15 +72,15 @@ fn main()
 	}
     };
 
-    let our_nodeid = {
+    let local_nodeid = {
 	match cfg::local_get(handle) {
 	    Ok(n) => {
 		println!("Local nodeid is {}", n);
-		n
+		Some(n)
 	    },
 	    Err(e) => {
 		println!("Error in CFG local_get: {}", e);
-		0
+		None
 	    }
 	}
     };
@@ -89,39 +89,44 @@ fn main()
     // node status for the local node looks odd (cos it's the loopback connection), so
     // we try for a node ID one less or more than us just to get output that looks
     // sensible to the user.
-    if our_nodeid != 0 {
-	let mut res = cfg::node_status_get(handle, our_nodeid+1, cfg::NodeStatusVersion::V1);
-	match res {
-	    Ok(_) => {},
-	    Err(_e) => {
-	    	res = cfg::node_status_get(handle, our_nodeid-1, cfg::NodeStatusVersion::V1);
-	    }
-	};
-	match res {
-	    Ok(ns) => {
-		println!("Node Status for nodeid {}", ns.nodeid);
-		println!("   reachable: {}", ns.reachable);
-		println!("   remote: {}", ns.remote);
-		println!("   onwire_min: {}", ns.onwire_min);
-		println!("   onwire_max: {}", ns.onwire_max);
-		println!("   onwire_ver: {}", ns.onwire_ver);
-		let mut ls_num = 0;
-		for ls in ns.link_status {
-		    if ls.enabled {
-			println!("   Link {}", ls_num);
-			println!("      connected: {}", ls.connected);
-			println!("      mtu: {}", ls.mtu);
-			println!("      src: {}", ls.src_ipaddr);
-			println!("      dst: {}", ls.dst_ipaddr);
+    match local_nodeid {
+	Some(our_nodeid) => {
+	    let us_plus1 = NodeId::from(u32::from(our_nodeid)+1);
+	    let us_less1 = NodeId::from(u32::from(our_nodeid)+1);
+	    let mut res = cfg::node_status_get(handle, us_plus1, cfg::NodeStatusVersion::V1);
+	    match res {
+		Ok(_) => {},
+		Err(_e) => {
+		    res = cfg::node_status_get(handle, us_less1, cfg::NodeStatusVersion::V1);
+		}
+	    };
+	    match res {
+		Ok(ns) => {
+		    println!("Node Status for nodeid {}", ns.nodeid);
+		    println!("   reachable: {}", ns.reachable);
+		    println!("   remote: {}", ns.remote);
+		    println!("   onwire_min: {}", ns.onwire_min);
+		    println!("   onwire_max: {}", ns.onwire_max);
+		    println!("   onwire_ver: {}", ns.onwire_ver);
+		    let mut ls_num = 0;
+		    for ls in ns.link_status {
+			if ls.enabled {
+			    println!("   Link {}", ls_num);
+			    println!("      connected: {}", ls.connected);
+			    println!("      mtu: {}", ls.mtu);
+			    println!("      src: {}", ls.src_ipaddr);
+			    println!("      dst: {}", ls.dst_ipaddr);
+			}
+			ls_num += 1;
 		    }
-		    ls_num += 1;
+		}
+		Err(e) => {
+		    println!("Error in CFG node_status get: {} (tried nodeids {} & {})", e,
+			     us_plus1, us_less1);
 		}
 	    }
-	    Err(e) => {
-		println!("Error in CFG node_status get: {} (tried nodeids {} & {})", e,
-			 our_nodeid-1, our_nodeid+1);
-	    }
-	}
+	},
+	None => {}
     }
 
     // This should not shutdown corosync because the callback on handle2 will refuse it.

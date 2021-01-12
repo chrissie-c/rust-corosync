@@ -15,7 +15,7 @@ use std::os::raw::{c_void, c_int};
 use std::slice;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use crate::{CsError, DispatchFlags, TrackFlags, Result};
+use crate::{CsError, DispatchFlags, TrackFlags, Result, NodeId};
 use crate::cs_error_to_enum;
 
 #[derive(Copy, Clone)]
@@ -36,7 +36,7 @@ pub enum Model1Flags {
 
 /// RingId returned by quorum_notification_fn
 pub struct RingId {
-    pub nodeid: u32,
+    pub nodeid: NodeId,
     pub seq: u64,
 }
 
@@ -45,12 +45,12 @@ lazy_static! {
     static ref HANDLE_HASH: Mutex<HashMap<u64, Handle>> = Mutex::new(HashMap::new());
 }
 
-fn list_to_vec(list_entries: u32, list: *const u32) -> Vec<u32>
+fn list_to_vec(list_entries: u32, list: *const u32) -> Vec<NodeId>
 {
-    let mut r_member_list = Vec::<u32>::new();
+    let mut r_member_list = Vec::<NodeId>::new();
     let temp_members: &[u32] = unsafe { slice::from_raw_parts(list, list_entries as usize) };
     for i in 0..list_entries as usize {
-	r_member_list.push(temp_members[i]);
+	r_member_list.push(NodeId::from(temp_members[i]));
     }
     r_member_list
 }
@@ -66,7 +66,7 @@ extern "C" fn rust_quorum_notification_fn(
 {
     match HANDLE_HASH.lock().unwrap().get(&handle) {
 	Some(h) =>  {
-	    let r_ring_id = RingId{nodeid: ring_id.nodeid,
+	    let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
 				   seq: ring_id.seq};
 	    let r_member_list = list_to_vec(member_list_entries, member_list);
 	    let r_quorate = match quorate {
@@ -101,7 +101,7 @@ extern "C" fn rust_nodelist_notification_fn(
 {
     match HANDLE_HASH.lock().unwrap().get(&handle) {
 	Some(h) =>  {
-	    let r_ring_id = RingId{nodeid: ring_id.nodeid,
+	    let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
 				   seq: ring_id.seq};
 
 	    let r_member_list = list_to_vec(member_list_entries, member_list);
@@ -129,12 +129,12 @@ pub struct Model1Data {
     pub quorum_notification_fn: fn(hande: &Handle,
 				   quorate: bool,
 				   ring_id: RingId,
-				   member_list: Vec<u32>),
+				   member_list: Vec<NodeId>),
     pub nodelist_notification_fn: fn(hande: &Handle,
 				     ring_id: RingId,
-				     member_list: Vec<u32>,
-				     joined_list: Vec<u32>,
-				     left_list: Vec<u32>),
+				     member_list: Vec<NodeId>,
+				     joined_list: Vec<NodeId>,
+				     left_list: Vec<NodeId>),
 }
 
 // Our internal state

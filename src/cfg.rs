@@ -16,7 +16,7 @@ use std::sync::Mutex;
 use std::ffi::{CString};
 use std::ptr::copy_nonoverlapping;
 
-use crate::{CsError, DispatchFlags, Result};
+use crate::{CsError, DispatchFlags, Result, NodeId};
 use crate::cs_error_to_enum;
 
 // Used to convert a CFG handle into one of ours
@@ -77,7 +77,7 @@ pub struct LinkStatus
 pub struct NodeStatus
 {
     pub version: NodeStatusVersion,
-    pub nodeid: u32,
+    pub nodeid: NodeId,
     pub reachable: bool,
     pub remote: bool,
     pub external: bool,
@@ -158,8 +158,8 @@ pub fn fd_get(handle: Handle) -> Result<i32>
 
 /// get the local node id
 /// handle: a cfg handle as returned from [initialize]
-/// return: the local nodeid as a [u32]
-pub fn local_get(handle: Handle) -> Result<u32>
+/// return: the local nodeid as a [NodeId[
+pub fn local_get(handle: Handle) -> Result<NodeId>
 {
     let mut nodeid: u32 = 0;
     let res =
@@ -167,7 +167,7 @@ pub fn local_get(handle: Handle) -> Result<u32>
 	    ffi::cfg::corosync_cfg_local_get(handle.cfg_handle, &mut nodeid)
 	};
     if res == ffi::cfg::CS_OK {
-	Ok(nodeid)
+	Ok(NodeId::from(nodeid))
     } else {
 	Err(cs_error_to_enum(res))
     }
@@ -208,7 +208,7 @@ pub fn reopen_log_files(handle: Handle) -> Result<()>
 /// handle: a cfg handle as returned from [initialize]
 /// nodeid: Node Id of node to go away
 /// reason: Reason for node to leave the cluster (String)
-pub fn kill_node(handle: Handle, nodeid: u32, reason: &String) -> Result<()>
+pub fn kill_node(handle: Handle, nodeid: NodeId, reason: &String) -> Result<()>
 {
     let c_string = {
 	match CString::new(reason.as_str()) {
@@ -219,7 +219,7 @@ pub fn kill_node(handle: Handle, nodeid: u32, reason: &String) -> Result<()>
 
     let res =
 	unsafe {
-	    ffi::cfg::corosync_cfg_kill_node(handle.cfg_handle, nodeid, c_string.as_ptr())
+	    ffi::cfg::corosync_cfg_kill_node(handle.cfg_handle, u32::from(nodeid), c_string.as_ptr())
 	};
     if res == ffi::cfg::CS_OK {
 	Ok(())
@@ -330,7 +330,7 @@ fn unpack_nodestatus(c_nodestatus: ffi::cfg::corosync_cfg_node_status_v1) -> Nod
 {
     let mut ns = NodeStatus {
 	version: NodeStatusVersion::V1,
-	nodeid: c_nodestatus.nodeid,
+	nodeid: NodeId::from(c_nodestatus.nodeid),
 	reachable: u8_to_bool(c_nodestatus.reachable),
 	remote: u8_to_bool(c_nodestatus.remote),
 	external: u8_to_bool(c_nodestatus.external),
@@ -371,7 +371,7 @@ fn new_ls() -> ffi::cfg::corosync_knet_link_status_v1
 /// nodeid: ID of node to get status info of
 /// version: version of structure we understand
 /// returns: status of the node as a [NodeStatus]
-pub fn node_status_get(handle: Handle, nodeid: u32, _version: NodeStatusVersion) -> Result<NodeStatus>
+pub fn node_status_get(handle: Handle, nodeid: NodeId, _version: NodeStatusVersion) -> Result<NodeStatus>
 {
     // Currently only supports V1 struct
     unsafe {
@@ -388,7 +388,7 @@ pub fn node_status_get(handle: Handle, nodeid: u32, _version: NodeStatusVersion)
 	    link_status: [new_ls(); 8],
 	};
 	
-	let res = ffi::cfg::corosync_cfg_node_status_get(handle.cfg_handle, nodeid, 1, &mut c_nodestatus as *mut _ as *mut c_void);
+	let res = ffi::cfg::corosync_cfg_node_status_get(handle.cfg_handle, u32::from(nodeid), 1, &mut c_nodestatus as *mut _ as *mut c_void);
 
 	if res == ffi::cfg::CS_OK {
 	    let ns = unpack_nodestatus(c_nodestatus);

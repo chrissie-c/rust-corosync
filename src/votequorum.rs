@@ -18,13 +18,13 @@ use std::ffi::{CString};
 use std::ptr::copy_nonoverlapping;
 use std::fmt;
 
-use crate::{CsError, DispatchFlags, TrackFlags, Result};
+use crate::{CsError, DispatchFlags, TrackFlags, Result, NodeId};
 use crate::cs_error_to_enum;
 
 
 /// RingId returned by votequorum_notification_fn
 pub struct RingId {
-    pub nodeid: u32,
+    pub nodeid: NodeId,
     pub seq: u64,
 }
 
@@ -64,7 +64,7 @@ impl fmt::Debug for NodeState {
 
 pub struct Node
 {
-    nodeid: u32,
+    nodeid: NodeId,
     state: NodeState
 }
 impl fmt::Debug for Node {
@@ -88,7 +88,7 @@ pub const VOTEQUORUM_INFO_QDEVICE_MASTER_WINS      : u32 = 512;
 
 pub struct NodeInfo
 {
-    pub node_id: u32,
+    pub node_id: NodeId,
     pub node_state: NodeState,
     pub node_votes: u32,
     pub node_expected_votes: u32,
@@ -99,13 +99,13 @@ pub struct NodeInfo
     pub qdevice_name: String,
 }
 
-// Turn a C nodeID list into a vec of u32
-fn list_to_vec(list_entries: u32, list: *const u32) -> Vec<u32>
+// Turn a C nodeID list into a vec of NodeIds
+fn list_to_vec(list_entries: u32, list: *const u32) -> Vec<NodeId>
 {
-    let mut r_member_list = Vec::<u32>::new();
+    let mut r_member_list = Vec::<NodeId>::new();
     let temp_members: &[u32] = unsafe { slice::from_raw_parts(list, list_entries as usize) };
     for i in 0..list_entries as usize {
-	r_member_list.push(temp_members[i]);
+	r_member_list.push(NodeId::from(temp_members[i]));
     }
     r_member_list
 }
@@ -145,7 +145,7 @@ extern "C" fn rust_quorum_notification_fn(
 	    let temp_members: &[ffi::votequorum::votequorum_node_t] =
 		unsafe { slice::from_raw_parts(node_list, node_list_entries as usize) };
 		for i in 0..node_list_entries as usize {
-		    r_node_list.push(Node{nodeid: temp_members[i].nodeid,
+		    r_node_list.push(Node{nodeid: NodeId::from(temp_members[i].nodeid),
 					  state: NodeState::new(temp_members[i].state)} );
 		}
 
@@ -168,7 +168,7 @@ extern "C" fn rust_nodelist_notification_fn(
 {
     match HANDLE_HASH.lock().unwrap().get(&handle) {
 	Some(h) =>  {
-	    let r_ring_id = RingId{nodeid: ring_id.nodeid,
+	    let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
 				   seq: ring_id.seq};
 
 	    let r_node_list = list_to_vec(node_list_entries, node_list);
@@ -191,7 +191,7 @@ pub struct Callbacks {
     pub nodelist_notification_fn: fn(hande: &Handle,
 				     context: u64,
 				     ring_id: RingId,
-				     node_list: Vec<u32>),
+				     node_list: Vec<NodeId>),
     pub expectedvotes_notification_fn: fn(handle: &Handle,
 					  context: u64,
 					  expected_votes: u32),
@@ -270,7 +270,7 @@ pub fn fd_get(handle: Handle) -> Result<i32>
 /// handle: votequorum handle from [initialize]
 /// nodeid: node to get intomation about
 /// return: [NodeInfo] for that node
-pub fn get_info(handle: Handle, nodeid: u32) -> Result<NodeInfo>
+pub fn get_info(handle: Handle, nodeid: NodeId) -> Result<NodeInfo>
 {
     let mut c_info = ffi::votequorum::votequorum_info {
 	node_id: 0,
@@ -286,12 +286,12 @@ pub fn get_info(handle: Handle, nodeid: u32) -> Result<NodeInfo>
     };
     let res =
 	unsafe {
-	    ffi::votequorum::votequorum_getinfo(handle.votequorum_handle, nodeid, &mut c_info)
+	    ffi::votequorum::votequorum_getinfo(handle.votequorum_handle, u32::from(nodeid), &mut c_info)
 	};
 
     if res == ffi::votequorum::CS_OK {
 	let info = NodeInfo {
-	    node_id : c_info.node_id,
+	    node_id : NodeId::from(c_info.node_id),
 	    node_state : NodeState::new(c_info.node_state),
 	    node_votes : c_info.node_votes,
 	    node_expected_votes : c_info.node_expected_votes,
@@ -449,11 +449,11 @@ pub fn set_expected(handle: Handle, expected_votes: u32) -> Result<()>
 /// Set the current votes for a node
 /// handle: a votequorum handle as returned from [initialize]
 /// votes: new value for 'votes'
-pub fn set_votes(handle: Handle, nodeid: u32, votes: u32) -> Result<()>
+pub fn set_votes(handle: Handle, nodeid: NodeId, votes: u32) -> Result<()>
 {
     let res =
 	unsafe {
-	    ffi::votequorum::votequorum_setvotes(handle.votequorum_handle, nodeid, votes)
+	    ffi::votequorum::votequorum_setvotes(handle.votequorum_handle, u32::from(nodeid), votes)
 	};
     if res == ffi::votequorum::CS_OK {
 	Ok(())
@@ -557,7 +557,7 @@ pub fn qdevice_poll(handle: Handle, name: &String, cast_vote: bool, ring_id: &Ri
 
     let c_cast_vote : u32 = if cast_vote {1} else {0};
     let c_ring_id = ffi::votequorum::votequorum_ring_id_t {
-	nodeid: ring_id.nodeid,
+	nodeid: u32::from(ring_id.nodeid),
 	seq: ring_id.seq};
 
     let res =
