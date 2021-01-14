@@ -4,6 +4,7 @@ pub mod cpg;
 pub mod quorum;
 pub mod votequorum;
 pub mod cfg;
+pub mod cmap;
 
 use std::fmt;
 use num_enum::TryFromPrimitive;

@@ -29,6 +29,7 @@ const CPG_MEMBERS_MAX: usize = 128;
 
 
 /// RingId returned by totem_confchg_fn
+#[derive(Copy, Clone)]
 pub struct RingId {
     pub nodeid: NodeId,
     pub seq: u64,
@@ -37,6 +38,7 @@ pub struct RingId {
 /// Totem delivery guarantee for mcast_joined
 // The C enum doesn't have numbers in the code
 // so don't assume we can match them
+#[derive(Copy, Clone)]
 pub enum Guarantee {
     TypeUnordered,
     TypeFifo,
@@ -56,7 +58,8 @@ impl Guarantee {
     }
 }
 
-///
+
+#[derive(Copy, Clone)]
 pub enum FlowControlState {
     Disabled,
     Enabled
@@ -68,6 +71,7 @@ pub enum Model1Flags {
 }
 
 /// Reason for cpg item callback
+#[derive(Copy, Clone)]
 pub enum Reason {
     Undefined = 0,
     Join = 1,
@@ -291,7 +295,6 @@ extern "C" fn rust_totem_confchg_fn(handle: ffi::cpg::cpg_handle_t,
     }
 }
 
-// Returns the actual CPG handle as .. well, it's easier than inventing something else
 /// Initialize a connection to cpg
 /// model_data: The type of initialization, and callbacks
 /// context:  arbitrary value returned in callbacks
@@ -668,6 +671,6 @@ impl IntoIterator for CpgIterStart {
 
     fn into_iter(self) -> Self::IntoIter
     {
-	CpgIntoIter {iter_handle: self.iter_handle} 
+	CpgIntoIter {iter_handle: self.iter_handle}
     }
 }

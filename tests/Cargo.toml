@@ -21,3 +21,13 @@ bench = false
 name = "votequorum-test"
 test = false
 bench = false
+
+[[bin]]
+name = "cfg-test"
+test = false
+bench = false
+
+[[bin]]
+name = "cmap-test"
+test = false
+bench = false
