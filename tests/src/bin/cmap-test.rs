@@ -58,6 +58,17 @@ fn main()
 	    return;
 	}
     };
+    match cmap::get(handle, "test.test_int16".to_string())
+    {
+	Ok(v) => {
+	    println!("GOT value {}", v);
+	}
+
+	Err(e) => {
+	    println!("Error in CMAP get: {}", e);
+	    return;
+	}
+    };
 
     match cmap::get(handle, "test.test_string".to_string())
     {

@@ -430,6 +430,90 @@ pub fn set_binary(handle: Handle, key_name: String, value: &[u8]) -> Result<()>
 }
 
 
+// Local function to parse out values from the C mess
+// Assumes the c_value is complete. So cmap::get() will need to check the size
+//   and re-get before calling us with a resized buffer
+fn c_to_data(value_size: usize, c_key_type: u32, c_value: Vec<u8>) -> Result<Data>
+{
+    unsafe {
+	match cmap_to_enum(c_key_type) {
+	    DataType::UInt8 => {
+		let mut ints = [0u8; 1];
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		Ok(Data::UInt8(ints[0]))
+	    }
+	    DataType::Int8 => {
+		let mut ints = [0i8; 1];
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		Ok(Data::Int8(ints[0]))
+	    }
+	    DataType::UInt16 => {
+		let mut ints = [0u16; 1];
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		Ok(Data::UInt16(ints[0]))
+	    }
+	    DataType::Int16 => {
+		let mut ints = [0i16; 1];
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		Ok(Data::Int16(ints[0]))
+	    }
+	    DataType::UInt32 => {
+		let mut ints = [0u32; 1];
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		Ok(Data::UInt32(ints[0]))
+	    }
+	    DataType::Int32 => {
+		let mut ints = [0i32; 1];
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		Ok(Data::Int32(ints[0]))
+	    }
+	    DataType::UInt64 => {
+		let mut ints = [0u64; 1];
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		Ok(Data::UInt64(ints[0]))
+	    }
+	    DataType::Int64 => {
+		let mut ints = [0i64; 1];
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		Ok(Data::Int64(ints[0]))
+	    }
+	    DataType::Float => {
+		let mut ints = [0f32; 1];
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		Ok(Data::Float(ints[0]))
+	    }
+	    DataType::Double => {
+		let mut ints = [0f64; 1];
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		Ok(Data::Double(ints[0]))
+	    }
+	    DataType::String => {
+		let mut ints = Vec::<u8>::new();
+		ints.resize(value_size, 0u8);
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		// -1 here so CString doesn't see the NUL
+		let cs = match CString::new(&ints[0..value_size-1 as usize]) {
+		    Ok(c1) => c1,
+		    Err(_) => return Err(CsError::CsErrLibrary),
+		};
+		match cs.into_string() {
+		    Ok(s) => Ok(Data::String(s)),
+		    Err(_) => return Err(CsError::CsErrLibrary),
+		}
+	    }
+	    DataType::Binary => {
+		let mut ints = Vec::<u8>::new();
+		ints.resize(value_size, 0u8);
+		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		Ok(Data::Binary(ints))
+	    }
+	    DataType::Unknown => {
+		Ok(Data::Unknown)
+	    }
+	}
+    }
+}
+
 /// cmap_get: get a value from cmap
 /// handle: cmap handle from [initialize]
 /// key_name: String name for the cmap key
@@ -440,106 +524,28 @@ pub fn get(handle: Handle, key_name: String) -> Result<Data>
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let mut value_size : usize = 16;
     let mut c_key_type : u32 = 0;
-    let mut c_value = [0u8; INITIAL_SIZE];
+    let mut c_value = Vec::<u8>::new();
+
+    // First guess at a size for Strings and Binaries. Expand if needed
+    c_value.resize(INITIAL_SIZE, 0u8);
 
     unsafe {
-	let res = ffi::cmap::cmap_get(handle.cmap_handle, csname.as_ptr(), c_value.as_mut_ptr() as *mut c_void, &mut value_size, &mut c_key_type);
+	let res = ffi::cmap::cmap_get(handle.cmap_handle, csname.as_ptr(), c_value.as_mut_ptr() as *mut c_void,
+				      &mut value_size, &mut c_key_type);
+	if res ==  ffi::cmap::CS_OK {
 
-	if res == ffi::cmap::CS_OK {
-	    match cmap_to_enum(c_key_type) {
-		DataType::UInt8 => {
-		    let mut ints = [0u8; 1];
-		    copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    Ok(Data::UInt8(ints[0]))
-		}
-		DataType::Int8 => {
-		    let mut ints = [0i8; 1];
-		    copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    Ok(Data::Int8(ints[0]))
-		}
-		DataType::UInt16 => {
-		    let mut ints = [0u16; 1];
-		    copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    Ok(Data::UInt16(ints[0]))
-		}
-		DataType::Int16 => {
-		    let mut ints = [0i16; 1];
-		    copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    Ok(Data::Int16(ints[0]))
-		}
-		DataType::UInt32 => {
-		    let mut ints = [0u32; 1];
-		    copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    Ok(Data::UInt32(ints[0]))
-		}
-		DataType::Int32 => {
-		    let mut ints = [0i32; 1];
-		    copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    Ok(Data::Int32(ints[0]))
-		}
-		DataType::UInt64 => {
-		    let mut ints = [0u64; 1];
-		    copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    Ok(Data::UInt64(ints[0]))
-		}
-		DataType::Int64 => {
-		    let mut ints = [0i64; 1];
-		    copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    Ok(Data::Int64(ints[0]))
-		}
-		DataType::Float => {
-		    let mut ints = [0f32; 1];
-		    copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    Ok(Data::Float(ints[0]))
-		}
-		DataType::Double => {
-		    let mut ints = [0f64; 1];
-		    copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    Ok(Data::Double(ints[0]))
-		}
-		DataType::String => {
-		    let mut ints = Vec::<u8>::new();
-
-		    // Too big - get it again
-		    if value_size > INITIAL_SIZE {
-			ints.resize(value_size, 0u8);
-			let res = ffi::cmap::cmap_get(handle.cmap_handle, csname.as_ptr(), ints.as_mut_ptr() as *mut c_void, &mut value_size, &mut c_key_type);
-			if res != ffi::cmap::CS_OK {
-			    return Err(cs_error_to_enum(res));
-			}
-		    } else {
-			ints.resize(value_size, 0u8);
-			copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    }
-		    // -1 here so CString doesn't see the NUL
-		    let cs = match CString::new(&ints[0..value_size-1 as usize]) {
-			Ok(c1) => c1,
-			Err(_) => return Err(CsError::CsErrLibrary),
-		    };
-		    match cs.into_string() {
-			Ok(s) => Ok(Data::String(s)),
-			Err(_) => return Err(CsError::CsErrLibrary),
-		    }
-		}
-		DataType::Binary => {
-		    let mut ints = Vec::<u8>::new();
-		    // Too big - get it again
-		    if value_size > INITIAL_SIZE {
-			ints.resize(value_size, 0u8);
-			let res = ffi::cmap::cmap_get(handle.cmap_handle, csname.as_ptr(), ints.as_mut_ptr() as *mut c_void, &mut value_size, &mut c_key_type);
-			if res != ffi::cmap::CS_OK {
-			    return Err(cs_error_to_enum(res));
-			}
-		    } else {
-			ints.resize(value_size, 0u8);
-			copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
-		    }
-		    Ok(Data::Binary(ints))
-		}
-		DataType::Unknown => {
-		    Ok(Data::Unknown)
+	    if value_size > INITIAL_SIZE {
+		// Need to try again with a bigger buffer
+		c_value.resize(value_size, 0u8);
+		let res2 = ffi::cmap::cmap_get(handle.cmap_handle, csname.as_ptr(), c_value.as_mut_ptr() as *mut c_void,
+					       &mut value_size, &mut c_key_type);
+		if res2 != ffi::cmap::CS_OK {
+		    return Err(cs_error_to_enum(res2));
 		}
 	    }
+
+	    // Convert to Rust type and return as a Data enum
+	    return c_to_data(value_size, c_key_type, c_value);
 	} else {
 	    return Err(cs_error_to_enum(res));
 	}
