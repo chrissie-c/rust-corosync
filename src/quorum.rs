@@ -198,12 +198,12 @@ pub fn initialize(model_data: &ModelData, context: u64) -> Result<(Handle, Quoru
 /// handle: a quorum handle as returned from [initialize]
 pub fn finalize(handle: Handle) -> Result<()>
 {
-    HANDLE_HASH.lock().unwrap().remove(&handle.quorum_handle);
     let res =
 	unsafe {
 	    ffi::quorum::quorum_finalize(handle.quorum_handle)
 	};
     if res == ffi::quorum::CS_OK {
+	HANDLE_HASH.lock().unwrap().remove(&handle.quorum_handle);
 	Ok(())
     } else {
 	Err(cs_error_to_enum(res))

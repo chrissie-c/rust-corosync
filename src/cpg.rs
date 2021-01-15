@@ -22,7 +22,7 @@ use std::fmt;
 
 // General corosync things
 use crate::{CsError, DispatchFlags, Result, NodeId};
-use crate::cs_error_to_enum;
+use crate::{cs_error_to_enum, string_from_bytes};
 
 const CPG_NAMELEN_MAX: usize = 128;
 const CPG_MEMBERS_MAX: usize = 128;
@@ -337,12 +337,12 @@ pub fn initialize(model_data: &ModelData, context: u64) -> Result<Handle>
 /// handle: a cpg handle as returned from [initialize]
 pub fn finalize(handle: Handle) -> Result<()>
 {
-    HANDLE_HASH.lock().unwrap().remove(&handle.cpg_handle);
     let res =
 	unsafe {
 	    ffi::cpg::cpg_finalize(handle.cpg_handle)
 	};
     if res == ffi::cpg::CS_OK {
+	HANDLE_HASH.lock().unwrap().remove(&handle.cpg_handle);
 	Ok(())
     } else {
 	Err(cs_error_to_enum(res))
@@ -604,29 +604,16 @@ impl Iterator for CpgIntoIter {
 	let res = unsafe {
 	    ffi::cpg::cpg_iteration_next(self.iter_handle, &mut c_iter_description)
 	};
+
 	if res == ffi::cpg::CS_OK {
-	    let r_group = unsafe {
-		// This is a bit of a messy way to get the string out of the internals of
-		// cpg_iteration_description, but we need to fully copy it, not shallow copy it.
-		let mut bytes: [u8;CPG_NAMELEN_MAX] = [0;CPG_NAMELEN_MAX];
-
-		// Messy casting on both parts of the copy here to get it to work on both signed
-		// and unsigned char machines
-		copy_nonoverlapping(c_iter_description.group.value.as_ptr() as *mut i8, bytes.as_mut_ptr() as *mut i8, CPG_NAMELEN_MAX);
-		let cs = match CString::new(&bytes[0..c_iter_description.group.length as usize]) {
-		    Ok(c1) => c1,
-		    Err(_) => return None,
-		};
-		match cs.into_string() {
-		    Ok(groupname) => groupname,
-		    Err(_) => return None,
-		}
+	    let r_group = match string_from_bytes(c_iter_description.group.value.as_ptr(), CPG_NAMELEN_MAX) {
+		Ok(groupname) => groupname,
+		Err(_) => return None,
 	    };
-
 	    Some(CpgIter{
-			 group: r_group,
-			 nodeid: NodeId::from(c_iter_description.nodeid),
-			 pid: c_iter_description.pid})
+		group: r_group,
+		nodeid: NodeId::from(c_iter_description.nodeid),
+		pid: c_iter_description.pid})
 	} else if res == ffi::cpg::CS_ERR_NO_SECTIONS { // End of list
 	    unsafe {
 		// Yeah, we don't check this return code. There's nowhere to report it.

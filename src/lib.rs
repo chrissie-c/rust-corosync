@@ -11,6 +11,8 @@ pub mod cmap;
 use std::fmt;
 use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
+use std::ptr::copy_nonoverlapping;
+use std::ffi::CString;
 
 // This needs to be kept up-to-date!
 /// Error codes returned from the corosync libraries
@@ -47,7 +49,8 @@ pub enum CsError {
     CsErrContextNotFound = 28,
     CsErrTooManyGroups = 30,
     CsErrSecurity = 100,
-    CsErrRustCompat = 999, // Set if we get a unknown return from corosync
+    CsErrRustCompat = 998, // Set if we get a unknown return from corosync
+    CsErrRustString = 999, // Set if we get a string conversion error
 }
 pub type Result<T> = ::std::result::Result<T, CsError>;
 
@@ -85,6 +88,7 @@ impl fmt::Display for CsError {
 	    CsError::CsErrTooManyGroups => write!(f, "ErrTooManyGroups"),
 	    CsError::CsErrSecurity => write!(f, "ErrSecurity"),
 	    CsError::CsErrRustCompat => write!(f, "ErrRustCompat"),
+	    CsError::CsErrRustString => write!(f, "ErrRustString"),
 	}
     }
 }
@@ -140,5 +144,45 @@ impl From<u32> for NodeId {
 impl From<NodeId> for u32 {
     fn from(nodeid: NodeId) -> u32 {
 	nodeid.id
+    }
+}
+
+
+// General routine to copy bytes from a C array into a Rust String
+fn string_from_bytes(bytes: *const ::std::os::raw::c_char, max_length: usize) -> Result<String>
+{
+    let mut newbytes = Vec::<u8>::new();
+    newbytes.resize(max_length, 0u8);
+
+    unsafe {
+	// We need to fully copy it, not shallow copy it.
+	// Messy casting on both parts of the copy here to get it to work on both signed
+	// and unsigned char machines
+	copy_nonoverlapping(bytes as *mut i8, newbytes.as_mut_ptr() as *mut i8, max_length);
+    }
+
+    // Get length of the string in old-fashioned style
+    let mut length: usize = 0;
+    let mut count : usize = 0;
+    for i in &newbytes {
+	if *i == 0 && length == 0 {
+	    length = count;
+	    break;
+	}
+	count += 1;
+    }
+
+    // Cope with an empty string
+    if length == 0 {
+	return Ok(String::new());
+    }
+
+    let cs = match CString::new(&newbytes[0..length as usize]) {
+	Ok(c1) => c1,
+	Err(_) => return Err(CsError::CsErrRustString),
+    };
+    match cs.into_string() {
+	Ok(s) => Ok(s),
+	Err(_) => Err(CsError::CsErrRustString),
     }
 }

@@ -18,12 +18,18 @@ use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
 use std::ptr::copy_nonoverlapping;
 use std::fmt;
+
+// NOTE: size_of and TypeId look perfect for this
+// to make a generic set() function, but requre that the
+// parameter too all functions is 'static,
+// which we can't work with
+// Leaving this comment here in case that changes
 //use core::mem::size_of;
-//use std::any::{TypeId};
+//use std::any::TypeId;
 
 
 use crate::{CsError, DispatchFlags, Result};
-use crate::cs_error_to_enum;
+use crate::{cs_error_to_enum, string_from_bytes};
 
 // Maps:
 pub enum Map
@@ -60,21 +66,6 @@ impl fmt::Display for TrackType {
 	else {
 	    Ok(())
 	}
-    }
-}
-
-
-impl TrackType {
-    // the C event type is a signed int32 for some bizarre reason.
-    // There MUST be a better way of doing this
-    fn from_i32(v: i32) -> TrackType {
-	let mut tv = TrackType{bits: 0};
-	if (v & 8) != 0 { tv.bits = tv.bits | 8};
-	if (v & 4) != 0 { tv.bits = tv.bits | 4};
-	if (v & 2) != 0 { tv.bits = tv.bits | 2};
-	if (v & 1) != 0 { tv.bits = tv.bits | 1};
-
-	tv
     }
 }
 
@@ -293,50 +284,6 @@ impl fmt::Display for Data {
 	}
     }
 }
-
-
-
-// This idea looks interesting but TypeId needs a 'static
-// parameter type which is not really helpful to us.
-
-// // Returns type & size for cmap functions
-// fn cmap_data_type<T: 'static>(value: T) -> (DataType, usize)
-// {
-//     let typeid = TypeId::of::<T>();
-
-//     // Can't use a match here as TypeId::of::<T>() is a fn call.
-//     if typeid == TypeId::of::<i8>()  { (DataType::Int8, 1);}
-//     if typeid == TypeId::of::<u8>()  { (DataType::UInt8, 1);}
-//     if typeid == TypeId::of::<i16>() { (DataType::Int16, 2);}
-//     if typeid == TypeId::of::<u16>() { (DataType::UInt16, 2);}
-//     if typeid == TypeId::of::<i32>() { (DataType::Int32, 4);}
-//     if typeid == TypeId::of::<u32>() { (DataType::UInt32, 4);}
-//     if typeid == TypeId::of::<i64>() { (DataType::Int64, 8);}
-//     if typeid == TypeId::of::<u64>() { (DataType::UInt64, 8);}
-//     if typeid == TypeId::of::<String>() { (DataType::String, 0);}
-//     if typeid == TypeId::of::<[u8]>() { (DataType::Binary, 0);}
-// // TODO: Not sure what to do with BINARY or string yet
-//     (DataType::Binary, 0)
-// }
-
-
-// /// Generic 'set' function
-// /// Value to set, and error will be returned if it's not valid
-// /// Strings should be 8-bit ASCII for C compatibility
-// pub fn set<T: 'static>(value: T) -> Result<()>
-// {
-//     println!("size = {}", size_of::<T>() as usize);
-
-//     let (typeid, size) = cmap_data_type(value);
-//     if size == 0 {
-// 	// Not current supported
-// 	return Err(CsError::CsErrInvalidParam);
-//     }
-// // TODO
-
-//     Ok(())
-// }
-
 
 const CMAP_KEYNAME_MAXLENGTH : usize = 255;
 fn string_to_cstring_validated(key: &String, maxlen: usize) -> Result<CString>
@@ -629,39 +576,6 @@ pub fn dec(handle: Handle, key_name: String) -> Result<()>
     }
 }
 
-// TODO: Hopefully this will become "THE" version in lib.rs
-fn string_from_bytes(bytes: *const ::std::os::raw::c_char, max_length: usize) -> Option<String>
-{
-    let mut newbytes = Vec::<u8>::new();
-    newbytes.resize(max_length, 0u8);
-
-    unsafe {
-	// We need to fully copy it, not shallow copy it.
-	// Messy casting on both parts of the copy here to get it to work on both signed
-	// and unsigned char machines
-	copy_nonoverlapping(bytes as *mut i8, newbytes.as_mut_ptr() as *mut i8, max_length);
-    }
-
-    // Get length of the string in old-fashioned style
-    let mut length: usize = 0;
-    let mut count : usize = 0;
-    for i in &newbytes {
-	if *i == 0 && length == 0 {
-	    length = count;
-	}
-	count += 1;
-    }
-
-    let cs = match CString::new(&newbytes[0..length as usize]) {
-	Ok(c1) => c1,
-	Err(_) => return None,
-    };
-    match cs.into_string() {
-	    Ok(s) => Some(s),
-	Err(_) => return None,
-    }
-}
-
 // Callback for CMAP notify events from corosync, convert params to Rust and pass on.
 extern "C" fn rust_notify_fn(cmap_handle: ffi::cmap::cmap_handle_t,
 			     cmap_track_handle: ffi::cmap::cmap_track_handle_t,
@@ -677,8 +591,8 @@ extern "C" fn rust_notify_fn(cmap_handle: ffi::cmap::cmap_handle_t,
 	    match TRACKHANDLE_HASH.lock().unwrap().get(&cmap_track_handle) {
 		Some(h) =>  {
 		    let r_keyname = match string_from_bytes(key_name, CMAP_KEYNAME_MAXLENGTH) {
-			Some(s) => s,
-			None => return,
+			Ok(s) => s,
+			Err(_) => return,
 		    };
 
 		    let r_old = match c_to_data(old_value.len, old_value.type_, old_value.data as *const u8) {
@@ -690,7 +604,7 @@ extern "C" fn rust_notify_fn(cmap_handle: ffi::cmap::cmap_handle_t,
 			Err(_) => return,
 		    };
 
-		    (h.notify_callback.notify_fn)(r_cmap_handle, h, TrackType::from_i32(event),
+		    (h.notify_callback.notify_fn)(r_cmap_handle, h, TrackType{bits: event},
 						  &r_keyname,
 						  &r_old, &r_new,
 						  user_data as u64);

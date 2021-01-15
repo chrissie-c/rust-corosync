@@ -92,11 +92,12 @@ fn main()
     match local_nodeid {
 	Some(our_nodeid) => {
 	    let us_plus1 = NodeId::from(u32::from(our_nodeid)+1);
-	    let us_less1 = NodeId::from(u32::from(our_nodeid)+1);
+	    let us_less1 = NodeId::from(u32::from(our_nodeid)-1);
 	    let mut res = cfg::node_status_get(handle, us_plus1, cfg::NodeStatusVersion::V1);
 	    match res {
 		Ok(_) => {},
-		Err(_e) => {
+		Err(e) => {
+		    println!("Error from node_status_get on nodeid {}: {}", us_plus1, e);
 		    res = cfg::node_status_get(handle, us_less1, cfg::NodeStatusVersion::V1);
 		}
 	    };
