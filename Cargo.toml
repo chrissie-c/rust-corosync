@@ -8,3 +8,4 @@ edition = "2018"
 rust-corosync-sys = { path = "rust-corosync-sys" }
 lazy_static = "1.4.0"
 num_enum = "0.5.1"
+bitflags = "1.2.1"

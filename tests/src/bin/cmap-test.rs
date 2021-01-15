@@ -3,6 +3,21 @@
 extern crate rust_corosync as corosync;
 use corosync::{cmap};
 
+fn track_notify_fn(_handle: &cmap::Handle,
+		   _track_handle: &cmap::TrackHandle,
+		   event: cmap::TrackType,
+		   key_name: &String,
+		   old_value: &cmap::Data,
+		   new_value: &cmap::Data,
+		   user_data: u64)
+{
+    println!("Track notify callback");
+    println!("Key: {}, event: {}, user_data: {}", key_name, event, user_data);
+    println!("   Old value: {}", old_value);
+    println!("   New value: {}", new_value);
+}
+
+
 fn main()
 {
     let handle =
@@ -12,7 +27,7 @@ fn main()
 		h
 	    }
 	    Err(e) => {
-		println!("Error in CMAP init: {}", e);
+		println!("Error in CMAP (Icmap) init: {}", e);
 		return;
 	    }
 	};
@@ -82,13 +97,47 @@ fn main()
 	}
     };
 
-    
+
+    // Close this handle
+    match cmap::finalize(handle)
+    {
+	Ok(_) => {}
+	Err(e) => {
+	    println!("Error in CMAP get: {}", e);
+	    return;
+	}
+    };
+
+
+    // Test notifications on the stats map
+    let handle =
+	match cmap::initialize(cmap::Map::Stats) {
+	    Ok(h) => h,
+	    Err(e) => {
+		println!("Error in CMAP (Stats) init: {}", e);
+		return;
+	    }
+	};
+
+    let cb = cmap::NotifyCallback{notify_fn: track_notify_fn};
+    let _track_handle =
+	match cmap::track_add(handle, &"stats.srp.memb_merge_detect_tx".to_string(), 
+			      cmap::TrackType::MODIFY |cmap::TrackType::ADD | cmap::TrackType::DELETE,
+			      &cb,
+			      997u64) {
+	    Ok(th) => th,
+	    Err(e) => {
+		println!("Error in CMAP track_add {}", e);
+		return;
+	    }
+	};
+
     // Wait for events
-    // loop {
-    // 	match cmap::dispatch(handle, corosync::DispatchFlags::One) {
-    // 	    Ok(_) => {}
-    // 	    Err(_) => break,
-    // 	}
-    // }
-    // println!("ERROR: Corosync quit");
+    loop {
+	match cmap::dispatch(handle, corosync::DispatchFlags::One) {
+	    Ok(_) => {}
+	    Err(_) => break,
+	}
+    }
+    println!("ERROR: Corosync quit");
 }

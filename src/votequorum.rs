@@ -236,12 +236,12 @@ pub fn initialize(callbacks: &Callbacks) -> Result<Handle>
 /// handle: a votequorum handle as returned from [initialize]
 pub fn finalize(handle: Handle) -> Result<()>
 {
-    HANDLE_HASH.lock().unwrap().remove(&handle.votequorum_handle);
     let res =
 	unsafe {
 	    ffi::votequorum::votequorum_finalize(handle.votequorum_handle)
 	};
     if res == ffi::votequorum::CS_OK {
+	HANDLE_HASH.lock().unwrap().remove(&handle.votequorum_handle);
 	Ok(())
     } else {
 	Err(cs_error_to_enum(res))

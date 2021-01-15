@@ -23,7 +23,6 @@ use std::fmt;
 
 
 use crate::{CsError, DispatchFlags, Result};
-//use crate::{CsError, DispatchFlags, TrackFlags, Result};
 use crate::cs_error_to_enum;
 
 // Maps:
@@ -34,11 +33,49 @@ pub enum Map
 }
 
 // Tracker types
-pub enum Track
-{
-    Add,
-    Delete,
-    Modify,
+bitflags! {
+    pub struct TrackType: i32
+    {
+	const DELETE = 1;
+	const MODIFY = 2;
+	const ADD = 4;
+	const PREFIX = 8;
+    }
+}
+
+impl fmt::Display for TrackType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	if self.contains(TrackType::DELETE) {
+	    write!(f, "DELETE ")?
+	}
+	if self.contains(TrackType::MODIFY) {
+	    write!(f, "MODIFY ")?
+	}
+	if self.contains(TrackType::ADD) {
+	    write!(f, "ADD ")?
+	}
+	if self.contains(TrackType::PREFIX) {
+	    write!(f, "PREFIX ")
+	}
+	else {
+	    Ok(())
+	}
+    }
+}
+
+
+impl TrackType {
+    // the C event type is a signed int32 for some bizarre reason.
+    // There MUST be a better way of doing this
+    fn from_i32(v: i32) -> TrackType {
+	let mut tv = TrackType{bits: 0};
+	if (v & 8) != 0 { tv.bits = tv.bits | 8};
+	if (v & 4) != 0 { tv.bits = tv.bits | 4};
+	if (v & 2) != 0 { tv.bits = tv.bits | 2};
+	if (v & 1) != 0 { tv.bits = tv.bits | 1};
+
+	tv
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -47,8 +84,16 @@ pub struct Handle
     cmap_handle: u64,
 }
 
-// Used to convert a CMAP handle into one of ours
+#[derive(Copy, Clone)]
+pub struct TrackHandle
+{
+    track_handle: u64,
+    notify_callback: NotifyCallback,
+}
+
+// Used to convert CMAP handles into one of ours, for callbacks
 lazy_static! {
+    static ref TRACKHANDLE_HASH: Mutex<HashMap<u64, TrackHandle>> = Mutex::new(HashMap::new());
     static ref HANDLE_HASH: Mutex<HashMap<u64, Handle>> = Mutex::new(HashMap::new());
 }
 
@@ -81,12 +126,12 @@ pub fn initialize(map: Map) -> Result<Handle>
 /// handle: a cmap handle as returned from [initialize]
 pub fn finalize(handle: Handle) -> Result<()>
 {
-    HANDLE_HASH.lock().unwrap().remove(&handle.cmap_handle);
     let res =
 	unsafe {
 	    ffi::cmap::cmap_finalize(handle.cmap_handle)
 	};
     if res == ffi::cmap::CS_OK {
+	HANDLE_HASH.lock().unwrap().remove(&handle.cmap_handle);
 	Ok(())
     } else {
 	Err(cs_error_to_enum(res))
@@ -433,64 +478,64 @@ pub fn set_binary(handle: Handle, key_name: String, value: &[u8]) -> Result<()>
 // Local function to parse out values from the C mess
 // Assumes the c_value is complete. So cmap::get() will need to check the size
 //   and re-get before calling us with a resized buffer
-fn c_to_data(value_size: usize, c_key_type: u32, c_value: Vec<u8>) -> Result<Data>
+fn c_to_data(value_size: usize, c_key_type: u32, c_value: *const u8) -> Result<Data>
 {
     unsafe {
 	match cmap_to_enum(c_key_type) {
 	    DataType::UInt8 => {
 		let mut ints = [0u8; 1];
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		Ok(Data::UInt8(ints[0]))
 	    }
 	    DataType::Int8 => {
 		let mut ints = [0i8; 1];
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		Ok(Data::Int8(ints[0]))
 	    }
 	    DataType::UInt16 => {
 		let mut ints = [0u16; 1];
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		Ok(Data::UInt16(ints[0]))
 	    }
 	    DataType::Int16 => {
 		let mut ints = [0i16; 1];
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		Ok(Data::Int16(ints[0]))
 	    }
 	    DataType::UInt32 => {
 		let mut ints = [0u32; 1];
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		Ok(Data::UInt32(ints[0]))
 	    }
 	    DataType::Int32 => {
 		let mut ints = [0i32; 1];
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		Ok(Data::Int32(ints[0]))
 	    }
 	    DataType::UInt64 => {
 		let mut ints = [0u64; 1];
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		Ok(Data::UInt64(ints[0]))
 	    }
 	    DataType::Int64 => {
 		let mut ints = [0i64; 1];
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		Ok(Data::Int64(ints[0]))
 	    }
 	    DataType::Float => {
 		let mut ints = [0f32; 1];
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		Ok(Data::Float(ints[0]))
 	    }
 	    DataType::Double => {
 		let mut ints = [0f64; 1];
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		Ok(Data::Double(ints[0]))
 	    }
 	    DataType::String => {
 		let mut ints = Vec::<u8>::new();
 		ints.resize(value_size, 0u8);
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		// -1 here so CString doesn't see the NUL
 		let cs = match CString::new(&ints[0..value_size-1 as usize]) {
 		    Ok(c1) => c1,
@@ -504,7 +549,7 @@ fn c_to_data(value_size: usize, c_key_type: u32, c_value: Vec<u8>) -> Result<Dat
 	    DataType::Binary => {
 		let mut ints = Vec::<u8>::new();
 		ints.resize(value_size, 0u8);
-		copy_nonoverlapping(c_value.as_ptr() as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
+		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		Ok(Data::Binary(ints))
 	    }
 	    DataType::Unknown => {
@@ -545,7 +590,7 @@ pub fn get(handle: Handle, key_name: String) -> Result<Data>
 	    }
 
 	    // Convert to Rust type and return as a Data enum
-	    return c_to_data(value_size, c_key_type, c_value);
+	    return c_to_data(value_size, c_key_type, c_value.as_ptr());
 	} else {
 	    return Err(cs_error_to_enum(res));
 	}
@@ -554,7 +599,7 @@ pub fn get(handle: Handle, key_name: String) -> Result<Data>
 
 /// increment the value in a cmap key (must be a numeric type)
 /// handle: a cmap handle as returned from [initialize]
-/// key_name:Name of the key whose value is to be incremented
+/// key_name: Name of the key whose value is to be incremented, as a String
 pub fn inc(handle: Handle, key_name: String) -> Result<()>
 {
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
@@ -570,7 +615,7 @@ pub fn inc(handle: Handle, key_name: String) -> Result<()>
 
 /// decrement the value in a cmap key (must be a numeric type)
 /// handle: a cmap handle as returned from [initialize]
-/// key_name:Name of the key whose value is to be decremented
+/// key_name: Name of the key whose value is to be decremented, as a String
 pub fn dec(handle: Handle, key_name: String) -> Result<()>
 {
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
@@ -578,6 +623,137 @@ pub fn dec(handle: Handle, key_name: String) -> Result<()>
 	ffi::cmap::cmap_dec(handle.cmap_handle, csname.as_ptr())
     };
     if res == ffi::cmap::CS_OK {
+	Ok(())
+    } else {
+	Err(cs_error_to_enum(res))
+    }
+}
+
+// TODO: Hopefully this will become "THE" version in lib.rs
+fn string_from_bytes(bytes: *const ::std::os::raw::c_char, max_length: usize) -> Option<String>
+{
+    let mut newbytes = Vec::<u8>::new();
+    newbytes.resize(max_length, 0u8);
+
+    unsafe {
+	// We need to fully copy it, not shallow copy it.
+	// Messy casting on both parts of the copy here to get it to work on both signed
+	// and unsigned char machines
+	copy_nonoverlapping(bytes as *mut i8, newbytes.as_mut_ptr() as *mut i8, max_length);
+    }
+
+    // Get length of the string in old-fashioned style
+    let mut length: usize = 0;
+    let mut count : usize = 0;
+    for i in &newbytes {
+	if *i == 0 && length == 0 {
+	    length = count;
+	}
+	count += 1;
+    }
+
+    let cs = match CString::new(&newbytes[0..length as usize]) {
+	Ok(c1) => c1,
+	Err(_) => return None,
+    };
+    match cs.into_string() {
+	    Ok(s) => Some(s),
+	Err(_) => return None,
+    }
+}
+
+// Callback for CMAP notify events from corosync, convert params to Rust and pass on.
+extern "C" fn rust_notify_fn(cmap_handle: ffi::cmap::cmap_handle_t,
+			     cmap_track_handle: ffi::cmap::cmap_track_handle_t,
+			     event: i32,
+			     key_name: *const ::std::os::raw::c_char,
+			     new_value: ffi::cmap::cmap_notify_value,
+			     old_value: ffi::cmap::cmap_notify_value,
+			     user_data: *mut ::std::os::raw::c_void)
+{
+    // If cmap_handle doesn't match then throw away the callback.
+    match HANDLE_HASH.lock().unwrap().get(&cmap_handle) {
+	Some(r_cmap_handle) => {
+	    match TRACKHANDLE_HASH.lock().unwrap().get(&cmap_track_handle) {
+		Some(h) =>  {
+		    let r_keyname = match string_from_bytes(key_name, CMAP_KEYNAME_MAXLENGTH) {
+			Some(s) => s,
+			None => return,
+		    };
+
+		    let r_old = match c_to_data(old_value.len, old_value.type_, old_value.data as *const u8) {
+			Ok(v) => v,
+			Err(_) => return,
+		    };
+		    let r_new = match c_to_data(new_value.len, new_value.type_, new_value.data as *const u8) {
+			Ok(v) => v,
+			Err(_) => return,
+		    };
+
+		    (h.notify_callback.notify_fn)(r_cmap_handle, h, TrackType::from_i32(event),
+						  &r_keyname,
+						  &r_old, &r_new,
+						  user_data as u64);
+		}
+		None => {}
+	    }
+	}
+	None => {}
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct NotifyCallback
+{
+    pub notify_fn: fn(handle: &Handle,
+		      track_handle: &TrackHandle,
+		      event: TrackType,
+		      key_name: &String,
+		      new_value: &Data,
+		      old_value: &Data,
+		      user_data: u64),
+}
+
+/// track_start - track changes in cmap values
+/// handle: handle returned from [initialize]
+/// key_name: name of key or prefix of keys to track
+/// track_type: Type of event to track for as [TrackType]
+/// notify_callback: function to call when changes occur
+/// user_data: value to pass to callback
+/// Returns a track handle, used in [track_stop]
+pub fn track_add(handle: Handle,
+		 key_name: &String,
+		 track_type: TrackType,
+		 notify_callback: &NotifyCallback,
+		 user_data: u64) -> Result<TrackHandle>
+{
+    let c_name = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
+    let mut c_trackhandle = 0u64;
+    let res =
+	unsafe {
+	    ffi::cmap::cmap_track_add(handle.cmap_handle, c_name.as_ptr(), track_type.bits, Some(rust_notify_fn), user_data as *mut c_void, &mut c_trackhandle)
+	};
+    if res == ffi::cmap::CS_OK {
+	let rhandle = TrackHandle{track_handle: c_trackhandle, notify_callback: *notify_callback};
+	TRACKHANDLE_HASH.lock().unwrap().insert(c_trackhandle, rhandle);
+	Ok(rhandle)
+    } else {
+	Err(cs_error_to_enum(res))
+    }
+}
+
+/// track_delete: Remove a tracker
+/// handle: cmap handle from [intialize]
+/// track_handle: tracker handle from [track_add]
+pub fn track_delete(handle: Handle,
+		    track_handle: TrackHandle)->Result<()>
+{
+    let res =
+	unsafe {
+	    ffi::cmap::cmap_track_delete(handle.cmap_handle, track_handle.track_handle)
+	};
+    if res == ffi::cmap::CS_OK {
+	TRACKHANDLE_HASH.lock().unwrap().remove(&track_handle.track_handle);
 	Ok(())
     } else {
 	Err(cs_error_to_enum(res))
