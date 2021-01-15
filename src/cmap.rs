@@ -673,3 +673,105 @@ pub fn track_delete(handle: Handle,
 	Err(cs_error_to_enum(res))
     }
 }
+
+// Iterator handle passed back from cmap
+pub struct CmapIterStart
+{
+    iter_handle: u64,
+    cmap_handle: u64,
+}
+
+pub struct CmapIntoIter
+{
+    cmap_handle: u64,
+    iter_handle: u64,
+}
+
+pub struct CmapIter
+{
+    key_name: String,
+    data: Data,
+}
+
+impl fmt::Debug for CmapIter {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	write!(f, "{}: {}", self.key_name, self.data)
+    }
+}
+
+
+impl Iterator for CmapIntoIter {
+    type Item = CmapIter;
+
+    fn next(&mut self) -> Option<CmapIter> {
+	let mut c_key_name = [0u8; CMAP_KEYNAME_MAXLENGTH+1];
+	let mut c_value_len = 0usize;
+	let mut c_value_type = 0u32;
+	let res = unsafe {
+	    ffi::cmap::cmap_iter_next(self.cmap_handle, self.iter_handle,
+				      c_key_name.as_mut_ptr(),
+				      &mut c_value_len, &mut c_value_type)
+	};
+	if res == ffi::cmap::CS_OK {
+	    // Return the Data for this iteration
+	    let mut c_value = Vec::<u8>::new();
+	    c_value.resize(c_value_len, 0u8);
+	    let res = unsafe {
+		ffi::cmap::cmap_get(self.cmap_handle, c_key_name.as_ptr(), c_value.as_mut_ptr() as *mut c_void,
+				    &mut c_value_len, &mut c_value_type)
+	    };
+	    if res ==  ffi::cmap::CS_OK {
+		match c_to_data(c_value_len, c_value_type, c_value.as_ptr()) {
+		    Ok(d) => {
+			let r_keyname = match string_from_bytes(c_key_name.as_ptr(), CMAP_KEYNAME_MAXLENGTH) {
+			    Ok(s) => s,
+			    Err(_) => return None,
+			};
+			Some(CmapIter{key_name: r_keyname, data: d})
+		    }
+		    Err(_) => None
+		}
+	    } else {
+		// cmap_get returned error
+		None
+	    }
+	} else if res == ffi::cmap::CS_ERR_NO_SECTIONS { // End of list
+	    unsafe {
+		// Yeah, we don't check this return code. There's nowhere to report it.
+		ffi::cmap::cmap_iter_finalize(self.cmap_handle, self.iter_handle)
+	    };
+	    None
+	} else {
+	    None
+	}
+    }
+}
+
+
+impl CmapIterStart {
+    /// Create a new [CmapIterStart] object for iterating over a list of cmap keys
+    pub fn new(cmap_handle: Handle, prefix: &String) -> Result<CmapIterStart>
+    {
+	let mut iter_handle : u64 = 0;
+	let res =
+	    unsafe {
+		let c_prefix = string_to_cstring_validated(&prefix, CMAP_KEYNAME_MAXLENGTH)?;
+		ffi::cmap::cmap_iter_init(cmap_handle.cmap_handle, c_prefix.as_ptr(), &mut iter_handle)
+	    };
+	if res == ffi::cmap::CS_OK {
+	    Ok(CmapIterStart{cmap_handle: cmap_handle.cmap_handle, iter_handle})
+	} else {
+	    Err(cs_error_to_enum(res))
+	}
+    }
+}
+
+impl IntoIterator for CmapIterStart {
+    type Item = CmapIter;
+    type IntoIter = CmapIntoIter;
+
+    fn into_iter(self) -> Self::IntoIter
+    {
+	CmapIntoIter {iter_handle: self.iter_handle, cmap_handle: self.cmap_handle}
+    }
+}

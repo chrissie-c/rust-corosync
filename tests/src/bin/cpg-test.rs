@@ -121,11 +121,17 @@ fn main() {
     }
 
     // Test iterator
-    let cpg_iter = cpg::CpgIterStart::new(handle, &"".to_owned(), cpg::CpgIterType::All).unwrap();
-    for i in cpg_iter {
-	println!("ITER: {:?}", i);
+    match cpg::CpgIterStart::new(handle, &"".to_owned(), cpg::CpgIterType::All) {
+	Ok(cpg_iter) => {
+	    for i in cpg_iter {
+		println!("ITER: {:?}", i);
+	    }
+	    println!("");
+	}
+	Err(e) => {
+	    println!("Error in CPG iter start: {}", e);
+	}
     }
-    println!("");
 
     // We should receive our own message (at least) in the event loop
     match cpg::mcast_joined(handle, cpg::Guarantee::TypeAgreed,

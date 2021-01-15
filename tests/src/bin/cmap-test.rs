@@ -97,6 +97,18 @@ fn main()
 	}
     };
 
+    // Test an iterator
+    match cmap::CmapIterStart::new(handle, &"totem.".to_string()) {
+	Ok(cmap_iter) => {
+	    for i in cmap_iter {
+		println!("ITER: {:?}", i);
+	    }
+	    println!("");
+	}
+	Err(e) => {
+	    println!("Error in CMAP iter start: {}", e);
+	}
+    }
 
     // Close this handle
     match cmap::finalize(handle)
@@ -121,7 +133,7 @@ fn main()
 
     let cb = cmap::NotifyCallback{notify_fn: track_notify_fn};
     let _track_handle =
-	match cmap::track_add(handle, &"stats.srp.memb_merge_detect_tx".to_string(), 
+	match cmap::track_add(handle, &"stats.srp.memb_merge_detect_tx".to_string(),
 			      cmap::TrackType::MODIFY |cmap::TrackType::ADD | cmap::TrackType::DELETE,
 			      &cb,
 			      997u64) {
@@ -133,11 +145,16 @@ fn main()
 	};
 
     // Wait for events
+    let mut event_num = 0;
     loop {
 	match cmap::dispatch(handle, corosync::DispatchFlags::One) {
 	    Ok(_) => {}
-	    Err(_) => break,
+	    Err(e) => println!("Error from CMAP dispatch: {}", e)
+	}
+	// Just do 5
+	event_num += 1;
+	if event_num > 5 {
+	    break;
 	}
     }
-    println!("ERROR: Corosync quit");
 }
