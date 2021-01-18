@@ -1100,88 +1100,49 @@ extern "C" {
     pub fn hdb_error_to_cs(res: ::std::os::raw::c_int) -> cs_error_t;
 }
 pub type corosync_cfg_handle_t = u64;
-#[doc = " REQUEST is the normal shutdown."]
-#[doc = "        Other daemons will be consulted."]
 pub const COROSYNC_CFG_SHUTDOWN_FLAG_REQUEST: corosync_cfg_shutdown_flags_t = 0;
-#[doc = " REGARDLESS will tell other daemons but ignore their opinions."]
 pub const COROSYNC_CFG_SHUTDOWN_FLAG_REGARDLESS: corosync_cfg_shutdown_flags_t = 1;
-#[doc = " IMMEDIATE will shut down straight away"]
-#[doc = "        (but still tell other nodes)."]
 pub const COROSYNC_CFG_SHUTDOWN_FLAG_IMMEDIATE: corosync_cfg_shutdown_flags_t = 2;
-#[doc = " Shutdown types."]
 pub type corosync_cfg_shutdown_flags_t = ::std::os::raw::c_uint;
 pub const COROSYNC_CFG_SHUTDOWN_FLAG_NO: corosync_cfg_shutdown_reply_flags_t = 0;
 pub const COROSYNC_CFG_SHUTDOWN_FLAG_YES: corosync_cfg_shutdown_reply_flags_t = 1;
-#[doc = " @brief enum corosync_cfg_shutdown_reply_flags_t"]
 pub type corosync_cfg_shutdown_reply_flags_t = ::std::os::raw::c_uint;
-#[doc = " @brief corosync_cfg_shutdown_callback_t callback"]
 pub type corosync_cfg_shutdown_callback_t = ::std::option::Option<
     unsafe extern "C" fn(cfg_handle: corosync_cfg_handle_t, flags: corosync_cfg_shutdown_flags_t),
 >;
-#[doc = " @brief struct corosync_cfg_shutdown_callback_t"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct corosync_cfg_callbacks_t {
     pub corosync_cfg_shutdown_callback: corosync_cfg_shutdown_callback_t,
 }
-#[doc = " A node address. This is a complete sockaddr_in[6]"]
-#[doc = ""]
-#[doc = " To explain:"]
-#[doc = "  If you cast cna_address to a 'struct sockaddr', the sa_family field"]
-#[doc = "  will be AF_INET or AF_INET6. Armed with that knowledge you can then"]
-#[doc = "  cast it to a sockaddr_in or sockaddr_in6 and pull out the address."]
-#[doc = "  No other sockaddr fields are valid."]
-#[doc = "  Also, you must ignore any part of the sockaddr beyond the length supplied"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct corosync_cfg_node_address_t {
-    #[doc = "< @todo FIXME: set but never used"]
     pub address_length: ::std::os::raw::c_int,
     pub address: [::std::os::raw::c_char; 28usize],
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_initialize"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @param cfg_callbacks"]
-    #[doc = " @return"]
     pub fn corosync_cfg_initialize(
         cfg_handle: *mut corosync_cfg_handle_t,
         cfg_callbacks: *const corosync_cfg_callbacks_t,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_fd_get"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @param selection_fd"]
-    #[doc = " @return"]
     pub fn corosync_cfg_fd_get(
         cfg_handle: corosync_cfg_handle_t,
         selection_fd: *mut i32,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_dispatch"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @param dispatch_flags"]
-    #[doc = " @return"]
     pub fn corosync_cfg_dispatch(
         cfg_handle: corosync_cfg_handle_t,
         dispatch_flags: cs_dispatch_flags_t,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_finalize"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @return"]
     pub fn corosync_cfg_finalize(cfg_handle: corosync_cfg_handle_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_ring_status_get"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @param interface_names"]
-    #[doc = " @param status"]
-    #[doc = " @param interface_count"]
-    #[doc = " @return"]
     pub fn corosync_cfg_ring_status_get(
         cfg_handle: corosync_cfg_handle_t,
         interface_names: *mut *mut *mut ::std::os::raw::c_char,
@@ -1215,11 +1176,6 @@ pub struct corosync_cfg_node_status_v1 {
     pub link_status: [corosync_knet_link_status_v1; 8usize],
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_node_status_get"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @param nodeid"]
-    #[doc = " @param node_status"]
-    #[doc = " @return"]
     pub fn corosync_cfg_node_status_get(
         cfg_handle: corosync_cfg_handle_t,
         nodeid: ::std::os::raw::c_uint,
@@ -1228,11 +1184,6 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_kill_node"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @param nodeid"]
-    #[doc = " @param reason"]
-    #[doc = " @return"]
     pub fn corosync_cfg_kill_node(
         cfg_handle: corosync_cfg_handle_t,
         nodeid: ::std::os::raw::c_uint,
@@ -1240,53 +1191,27 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_trackstart"]
-    #[doc = " Track CFG for shutdown requests"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @param track_flags (none currently supported)"]
-    #[doc = " @param reason"]
-    #[doc = " @return"]
     pub fn corosync_cfg_trackstart(
         cfg_handle: corosync_cfg_handle_t,
         track_flags: u8,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_trackstop"]
-    #[doc = " Stop tracking CFG for shutdown requests"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @param reason"]
-    #[doc = " @return"]
     pub fn corosync_cfg_trackstop(cfg_handle: corosync_cfg_handle_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_try_shutdown"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @param flags"]
-    #[doc = " @return"]
     pub fn corosync_cfg_try_shutdown(
         cfg_handle: corosync_cfg_handle_t,
         flags: corosync_cfg_shutdown_flags_t,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_replyto_shutdown"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @param flags"]
-    #[doc = " @return"]
     pub fn corosync_cfg_replyto_shutdown(
         cfg_handle: corosync_cfg_handle_t,
         flags: corosync_cfg_shutdown_reply_flags_t,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_get_node_addrs"]
-    #[doc = " @param cfg_handle"]
-    #[doc = " @param nodeid"]
-    #[doc = " @param max_addrs"]
-    #[doc = " @param num_addrs"]
-    #[doc = " @param addrs"]
-    #[doc = " @return"]
     pub fn corosync_cfg_get_node_addrs(
         cfg_handle: corosync_cfg_handle_t,
         nodeid: ::std::os::raw::c_uint,
@@ -1296,26 +1221,15 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_local_get"]
-    #[doc = " @param handle"]
-    #[doc = " @param local_nodeid"]
-    #[doc = " @return"]
     pub fn corosync_cfg_local_get(
         handle: corosync_cfg_handle_t,
         local_nodeid: *mut ::std::os::raw::c_uint,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief corosync_cfg_reload_config"]
-    #[doc = " @param handle"]
-    #[doc = " @return"]
     pub fn corosync_cfg_reload_config(handle: corosync_cfg_handle_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Reopen logging files"]
-    #[doc = " @param handle CFG service handle"]
-    #[doc = " @return CS_OK on success, CS_ERR_NOT_SUPPORTED if reopening of logging files is not available,"]
-    #[doc = "         otherwise one of common errors."]
     pub fn corosync_cfg_reopen_log_files(handle: corosync_cfg_handle_t) -> cs_error_t;
 }
 #[repr(C)]

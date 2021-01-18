@@ -3031,9 +3031,6 @@ extern "C" {
     pub fn qb_hdb_nocheck_convert(handle: u32) -> u64;
 }
 pub type hdb_handle_t = qb_handle_t;
-#[doc = " @addtogroup cmap_corosync"]
-#[doc = ""]
-#[doc = " @{"]
 pub type cmap_handle_t = u64;
 pub type cmap_iter_handle_t = u64;
 pub type cmap_track_handle_t = u64;
@@ -3049,14 +3046,11 @@ pub const CMAP_VALUETYPE_FLOAT: cmap_value_types_t = 9;
 pub const CMAP_VALUETYPE_DOUBLE: cmap_value_types_t = 10;
 pub const CMAP_VALUETYPE_STRING: cmap_value_types_t = 11;
 pub const CMAP_VALUETYPE_BINARY: cmap_value_types_t = 12;
-#[doc = " Possible types of value. Binary is raw data without trailing zero with given length"]
 pub type cmap_value_types_t = ::std::os::raw::c_uint;
 pub const CMAP_MAP_DEFAULT: cmap_map_t = 0;
 pub const CMAP_MAP_ICMAP: cmap_map_t = 0;
 pub const CMAP_MAP_STATS: cmap_map_t = 1;
 pub type cmap_map_t = ::std::os::raw::c_uint;
-#[doc = " Structure passed as new_value and old_value in change callback. It contains type of"]
-#[doc = " key, length of key and pointer to value of key"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct cmap_notify_value {
@@ -3064,10 +3058,6 @@ pub struct cmap_notify_value {
     pub len: usize,
     pub data: *const ::std::os::raw::c_void,
 }
-#[doc = " Prototype for notify callback function. Even is one of CMAP_TRACK_* event, key_name is"]
-#[doc = " changed key, new and old_value contains values or are zeroed (in other words, type is non"]
-#[doc = " existing 0 type) if there were no old (creating of key) or new (deleting of key) value."]
-#[doc = " user_data are passed when adding tracking."]
 pub type cmap_notify_fn_t = ::std::option::Option<
     unsafe extern "C" fn(
         cmap_handle: cmap_handle_t,
@@ -3080,65 +3070,33 @@ pub type cmap_notify_fn_t = ::std::option::Option<
     ),
 >;
 extern "C" {
-    #[doc = " Create a new cmap connection"]
-    #[doc = ""]
-    #[doc = " @param handle will be filled with handle to be used for all following"]
-    #[doc = " operations with cht."]
     pub fn cmap_initialize(handle: *mut cmap_handle_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " Create a new cmap connection on a specified map"]
-    #[doc = ""]
-    #[doc = " @param handle will be filled with handle to be used for all following"]
-    #[doc = " operations with cht."]
-    #[doc = " @param map is the 'map' to use for this connection"]
     pub fn cmap_initialize_map(handle: *mut cmap_handle_t, map: cmap_map_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " Close the cmap handle"]
-    #[doc = " @param handle cmap handle"]
     pub fn cmap_finalize(handle: cmap_handle_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " Get a file descriptor on which to poll.  cmap_handle_t is NOT a"]
-    #[doc = " file descriptor and may not be used directly."]
-    #[doc = " @param handle cmap handle initialized by cmap_initialize"]
-    #[doc = " @param fd file descriptor for poll"]
     pub fn cmap_fd_get(handle: cmap_handle_t, fd: *mut ::std::os::raw::c_int) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " Dispatch data from service."]
-    #[doc = " @param handle cmap handle initialized by cmap_initialize"]
-    #[doc = " @param dispatch_types one of standard corosync dispatch values"]
     pub fn cmap_dispatch(handle: cmap_handle_t, dispatch_types: cs_dispatch_flags_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief cmap_context_get"]
-    #[doc = " @param handle"]
-    #[doc = " @param context"]
-    #[doc = " @return"]
     pub fn cmap_context_get(
         handle: cmap_handle_t,
         context: *mut *const ::std::os::raw::c_void,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief cmap_context_set"]
-    #[doc = " @param handle"]
-    #[doc = " @param context"]
-    #[doc = " @return"]
     pub fn cmap_context_set(
         handle: cmap_handle_t,
         context: *const ::std::os::raw::c_void,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " Store value in cmap"]
-    #[doc = " @param handle cmap handle"]
-    #[doc = " @param key_name name of key where to store value"]
-    #[doc = " @param value value to store"]
-    #[doc = " @param value_len length of value to store"]
-    #[doc = " @param type type to store"]
     pub fn cmap_set(
         handle: cmap_handle_t,
         key_name: *const ::std::os::raw::c_char,
@@ -3225,29 +3183,12 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " Deletes key from cmap database"]
-    #[doc = " @param handle cmap handle"]
-    #[doc = " @param key_name name of key to delete"]
     pub fn cmap_delete(
         handle: cmap_handle_t,
         key_name: *const ::std::os::raw::c_char,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Retrieve value of key key_name and store it in user preallocated value pointer."]
-    #[doc = ""]
-    #[doc = " value can be NULL, and then only value_len and/or type is returned (both of them"]
-    #[doc = " can also be NULL). If value is not NULL, actual length of value in map is checked"]
-    #[doc = " against value_len. If *value_len is shorter then length of value in map, error"]
-    #[doc = " CS_ERR_INVALID_PARAM is returned. After successful copy of value, value_len is"]
-    #[doc = " set to actual length of value in map."]
-    #[doc = ""]
-    #[doc = " @param handle cmap handle"]
-    #[doc = " @param key_name name of key where to get value"]
-    #[doc = " @param value pointer to store data (or NULL)"]
-    #[doc = " @param value_len pointer with length of value (value != NULL), or pointer where value length"]
-    #[doc = " will be returned (value == NULL) or NULL."]
-    #[doc = " @param type type of value in cmap"]
     pub fn cmap_get(
         handle: cmap_handle_t,
         key_name: *const ::std::os::raw::c_char,
@@ -3327,13 +3268,6 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Shortcut for cmap_get for string type."]
-    #[doc = ""]
-    #[doc = " Returned string is newly allocated and caller is responsible for freeing memory"]
-    #[doc = ""]
-    #[doc = " @param handle cmap handle"]
-    #[doc = " @param key_name name of key to get value from"]
-    #[doc = " @param str pointer where char pointer will be stored"]
     pub fn cmap_get_string(
         handle: cmap_handle_t,
         key_name: *const ::std::os::raw::c_char,
@@ -3341,25 +3275,12 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Increment value of key_name if it is [u]int* type"]
-    #[doc = ""]
-    #[doc = " @param handle cmap handle"]
-    #[doc = " @param key_name key name"]
     pub fn cmap_inc(handle: cmap_handle_t, key_name: *const ::std::os::raw::c_char) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Decrement value of key_name if it is [u]int* type"]
-    #[doc = ""]
-    #[doc = " @param handle cmap handle"]
-    #[doc = " @param key_name key name"]
     pub fn cmap_dec(handle: cmap_handle_t, key_name: *const ::std::os::raw::c_char) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Initialize iterator with given prefix"]
-    #[doc = ""]
-    #[doc = " @param handle cmap handle"]
-    #[doc = " @param prefix prefix to iterate on"]
-    #[doc = " @param cmap_iter_handle value used for getting next value of iterator and/or deleting iteration"]
     pub fn cmap_iter_init(
         handle: cmap_handle_t,
         prefix: *const ::std::os::raw::c_char,
@@ -3367,19 +3288,6 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Return next item in iterator iter."]
-    #[doc = ""]
-    #[doc = " value_len and type are optional (= can be NULL), but if set,"]
-    #[doc = " length of returned value and/or type is returned."]
-    #[doc = ""]
-    #[doc = " @param handle cmap handle"]
-    #[doc = " @param iter_handle handle of iteration returned by cmap_iter_init"]
-    #[doc = " @param key_name place to store name of key. Maximum length is CMAP_KEYNAME_MAXLEN and"]
-    #[doc = "                 trailing zero is always added so size of the buffer has to be at least"]
-    #[doc = "                 CMAP_KEYNAME_MAXLEN + 1."]
-    #[doc = " @param value_len length of value"]
-    #[doc = " @param type type of value"]
-    #[doc = " @return CS_NO_SECTION if there are no more sections to iterate"]
     pub fn cmap_iter_next(
         handle: cmap_handle_t,
         iter_handle: cmap_iter_handle_t,
@@ -3389,26 +3297,10 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Finalize iterator"]
-    #[doc = " @param handle"]
-    #[doc = " @param iter_handle"]
-    #[doc = " @return"]
     pub fn cmap_iter_finalize(handle: cmap_handle_t, iter_handle: cmap_iter_handle_t)
         -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Add tracking function for given key_name."]
-    #[doc = ""]
-    #[doc = " Tracked changes (add|modify|delete) depend on track_type,"]
-    #[doc = " which is bitwise or of CMAP_TRACK_* values. notify_fn is called on change, where user_data pointer"]
-    #[doc = " is passed (unchanged). Value which can be used to delete tracking is passed as cmap_track."]
-    #[doc = ""]
-    #[doc = " @param handle cmap handle"]
-    #[doc = " @param key_name name of key to track changes on"]
-    #[doc = " @param track_type bitwise-or of CMAP_TRACK_* values"]
-    #[doc = " @param notify_fn function to be called on change of key"]
-    #[doc = " @param user_data given pointer is unchanged passed to notify_fn"]
-    #[doc = " @param cmap_track_handle handle used for removing of newly created track"]
     pub fn cmap_track_add(
         handle: cmap_handle_t,
         key_name: *const ::std::os::raw::c_char,
@@ -3419,9 +3311,6 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " Delete track created previously by cmap_track_add"]
-    #[doc = " @param handle cmap handle"]
-    #[doc = " @param track_handle Track handle"]
     pub fn cmap_track_delete(
         handle: cmap_handle_t,
         track_handle: cmap_track_handle_t,

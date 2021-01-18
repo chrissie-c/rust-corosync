@@ -1099,27 +1099,15 @@ extern "C" {
 extern "C" {
     pub fn hdb_error_to_cs(res: ::std::os::raw::c_int) -> cs_error_t;
 }
-#[doc = " @addtogroup cpg_corosync"]
-#[doc = ""]
-#[doc = " @{"]
-#[doc = " @brief cpg_handle_t"]
 pub type cpg_handle_t = u64;
-#[doc = " @brief cpg_iteration_handle_t"]
 pub type cpg_iteration_handle_t = u64;
-#[doc = "< not implemented"]
 pub const CPG_TYPE_UNORDERED: cpg_guarantee_t = 0;
-#[doc = "< same as agreed"]
 pub const CPG_TYPE_FIFO: cpg_guarantee_t = 1;
 pub const CPG_TYPE_AGREED: cpg_guarantee_t = 2;
-#[doc = "< not implemented"]
 pub const CPG_TYPE_SAFE: cpg_guarantee_t = 3;
-#[doc = " @brief The cpg_guarantee_t enum"]
 pub type cpg_guarantee_t = ::std::os::raw::c_uint;
-#[doc = "< flow control is disabled - new messages may be sent"]
 pub const CPG_FLOW_CONTROL_DISABLED: cpg_flow_control_state_t = 0;
-#[doc = "< flow control is enabled - new messages should not be sent"]
 pub const CPG_FLOW_CONTROL_ENABLED: cpg_flow_control_state_t = 1;
-#[doc = " @brief The cpg_flow_control_state_t enum"]
 pub type cpg_flow_control_state_t = ::std::os::raw::c_uint;
 pub const CPG_REASON_UNDEFINED: cpg_reason_t = 0;
 pub const CPG_REASON_JOIN: cpg_reason_t = 1;
@@ -1127,17 +1115,13 @@ pub const CPG_REASON_LEAVE: cpg_reason_t = 2;
 pub const CPG_REASON_NODEDOWN: cpg_reason_t = 3;
 pub const CPG_REASON_NODEUP: cpg_reason_t = 4;
 pub const CPG_REASON_PROCDOWN: cpg_reason_t = 5;
-#[doc = " @brief The cpg_reason_t enum"]
 pub type cpg_reason_t = ::std::os::raw::c_uint;
 pub const CPG_ITERATION_NAME_ONLY: cpg_iteration_type_t = 1;
 pub const CPG_ITERATION_ONE_GROUP: cpg_iteration_type_t = 2;
 pub const CPG_ITERATION_ALL: cpg_iteration_type_t = 3;
-#[doc = " @brief The cpg_iteration_type_t enum"]
 pub type cpg_iteration_type_t = ::std::os::raw::c_uint;
 pub const CPG_MODEL_V1: cpg_model_t = 1;
-#[doc = " @brief The cpg_model_t enum"]
 pub type cpg_model_t = ::std::os::raw::c_uint;
-#[doc = " @brief The cpg_address struct"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct cpg_address {
@@ -1145,14 +1129,12 @@ pub struct cpg_address {
     pub pid: u32,
     pub reason: u32,
 }
-#[doc = " @brief The cpg_name struct"]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct cpg_name {
     pub length: u32,
     pub value: [::std::os::raw::c_char; 128usize],
 }
-#[doc = " @brief The cpg_iteration_description_t struct"]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct cpg_iteration_description_t {
@@ -1160,14 +1142,12 @@ pub struct cpg_iteration_description_t {
     pub nodeid: u32,
     pub pid: u32,
 }
-#[doc = " @brief The cpg_ring_id struct"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct cpg_ring_id {
     pub nodeid: u32,
     pub seq: u64,
 }
-#[doc = " @brief The cpg_deliver_fn_t callback"]
 pub type cpg_deliver_fn_t = ::std::option::Option<
     unsafe extern "C" fn(
         handle: cpg_handle_t,
@@ -1178,7 +1158,6 @@ pub type cpg_deliver_fn_t = ::std::option::Option<
         msg_len: usize,
     ),
 >;
-#[doc = " @brief The cpg_confchg_fn_t callback"]
 pub type cpg_confchg_fn_t = ::std::option::Option<
     unsafe extern "C" fn(
         handle: cpg_handle_t,
@@ -1191,7 +1170,6 @@ pub type cpg_confchg_fn_t = ::std::option::Option<
         joined_list_entries: usize,
     ),
 >;
-#[doc = " @brief The cpg_totem_confchg_fn_t callback"]
 pub type cpg_totem_confchg_fn_t = ::std::option::Option<
     unsafe extern "C" fn(
         handle: cpg_handle_t,
@@ -1200,20 +1178,17 @@ pub type cpg_totem_confchg_fn_t = ::std::option::Option<
         member_list: *const u32,
     ),
 >;
-#[doc = " @brief The cpg_callbacks_t struct"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct cpg_callbacks_t {
     pub cpg_deliver_fn: cpg_deliver_fn_t,
     pub cpg_confchg_fn: cpg_confchg_fn_t,
 }
-#[doc = " @brief The cpg_model_data_t struct"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct cpg_model_data_t {
     pub model: cpg_model_t,
 }
-#[doc = " @brief The cpg_model_v1_data_t struct"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct cpg_model_v1_data_t {
@@ -1224,20 +1199,10 @@ pub struct cpg_model_v1_data_t {
     pub flags: ::std::os::raw::c_uint,
 }
 extern "C" {
-    #[doc = " @brief Create a new cpg connection"]
-    #[doc = " @param handle"]
-    #[doc = " @param callbacks"]
-    #[doc = " @return"]
     pub fn cpg_initialize(handle: *mut cpg_handle_t, callbacks: *mut cpg_callbacks_t)
         -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Create a new cpg connection, initialize with model"]
-    #[doc = " @param handle"]
-    #[doc = " @param model"]
-    #[doc = " @param model_data"]
-    #[doc = " @param context"]
-    #[doc = " @return"]
     pub fn cpg_model_initialize(
         handle: *mut cpg_handle_t,
         model: cpg_model_t,
@@ -1246,82 +1211,36 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Close the cpg handle"]
-    #[doc = " @param handle"]
-    #[doc = " @return"]
     pub fn cpg_finalize(handle: cpg_handle_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Get a file descriptor on which to poll."]
-    #[doc = ""]
-    #[doc = " cpg_handle_t is NOT a file descriptor and may not be used directly."]
-    #[doc = ""]
-    #[doc = " @param handle"]
-    #[doc = " @param fd"]
-    #[doc = " @return"]
     pub fn cpg_fd_get(handle: cpg_handle_t, fd: *mut ::std::os::raw::c_int) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Get maximum size of a message that will not be fragmented"]
-    #[doc = " @param handle"]
-    #[doc = " @param size"]
-    #[doc = " @return"]
     pub fn cpg_max_atomic_msgsize_get(handle: cpg_handle_t, size: *mut u32) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Get contexts for a CPG handle"]
-    #[doc = " @param handle"]
-    #[doc = " @param context"]
-    #[doc = " @return"]
     pub fn cpg_context_get(
         handle: cpg_handle_t,
         context: *mut *mut ::std::os::raw::c_void,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Set contexts for a CPG handle"]
-    #[doc = " @param handle"]
-    #[doc = " @param context"]
-    #[doc = " @return"]
     pub fn cpg_context_set(
         handle: cpg_handle_t,
         context: *mut ::std::os::raw::c_void,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief  Dispatch messages and configuration changes"]
-    #[doc = " @param handle"]
-    #[doc = " @param dispatch_types"]
-    #[doc = " @return"]
     pub fn cpg_dispatch(handle: cpg_handle_t, dispatch_types: cs_dispatch_flags_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Join one or more groups."]
-    #[doc = ""]
-    #[doc = " messages multicasted with cpg_mcast_joined will be sent to every"]
-    #[doc = " group that has been joined on handle handle.  Any message multicasted"]
-    #[doc = " to a group that has been previously joined will be delivered in cpg_dispatch"]
-    #[doc = ""]
-    #[doc = " @param handle"]
-    #[doc = " @param group"]
-    #[doc = " @return"]
     pub fn cpg_join(handle: cpg_handle_t, group: *const cpg_name) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Leave one or more groups"]
-    #[doc = " @param handle"]
-    #[doc = " @param group"]
-    #[doc = " @return"]
     pub fn cpg_leave(handle: cpg_handle_t, group: *const cpg_name) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Multicast to groups joined with cpg_join."]
-    #[doc = ""]
-    #[doc = " @param handle"]
-    #[doc = " @param guarantee"]
-    #[doc = " @param iovec This iovec will be multicasted to all groups joined with"]
-    #[doc = "              the cpg_join interface for handle."]
-    #[doc = " @param iov_len"]
     pub fn cpg_mcast_joined(
         handle: cpg_handle_t,
         guarantee: cpg_guarantee_t,
@@ -1330,12 +1249,6 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Get membership information from cpg"]
-    #[doc = " @param handle"]
-    #[doc = " @param groupName"]
-    #[doc = " @param member_list"]
-    #[doc = " @param member_list_entries"]
-    #[doc = " @return"]
     pub fn cpg_membership_get(
         handle: cpg_handle_t,
         groupName: *mut cpg_name,
@@ -1344,31 +1257,18 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief cpg_local_get"]
-    #[doc = " @param handle"]
-    #[doc = " @param local_nodeid"]
-    #[doc = " @return"]
     pub fn cpg_local_get(
         handle: cpg_handle_t,
         local_nodeid: *mut ::std::os::raw::c_uint,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief cpg_flow_control_state_get"]
-    #[doc = " @param handle"]
-    #[doc = " @param flow_control_enabled"]
-    #[doc = " @return"]
     pub fn cpg_flow_control_state_get(
         handle: cpg_handle_t,
         flow_control_enabled: *mut cpg_flow_control_state_t,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief cpg_zcb_alloc"]
-    #[doc = " @param handle"]
-    #[doc = " @param size"]
-    #[doc = " @param buffer"]
-    #[doc = " @return"]
     pub fn cpg_zcb_alloc(
         handle: cpg_handle_t,
         size: usize,
@@ -1376,19 +1276,9 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief cpg_zcb_free"]
-    #[doc = " @param handle"]
-    #[doc = " @param buffer"]
-    #[doc = " @return"]
     pub fn cpg_zcb_free(handle: cpg_handle_t, buffer: *mut ::std::os::raw::c_void) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief cpg_zcb_mcast_joined"]
-    #[doc = " @param handle"]
-    #[doc = " @param guarantee"]
-    #[doc = " @param msg"]
-    #[doc = " @param msg_len"]
-    #[doc = " @return"]
     pub fn cpg_zcb_mcast_joined(
         handle: cpg_handle_t,
         guarantee: cpg_guarantee_t,
@@ -1397,12 +1287,6 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief cpg_iteration_initialize"]
-    #[doc = " @param handle"]
-    #[doc = " @param iteration_type"]
-    #[doc = " @param group"]
-    #[doc = " @param cpg_iteration_handle"]
-    #[doc = " @return"]
     pub fn cpg_iteration_initialize(
         handle: cpg_handle_t,
         iteration_type: cpg_iteration_type_t,
@@ -1411,19 +1295,12 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief cpg_iteration_next"]
-    #[doc = " @param handle"]
-    #[doc = " @param description"]
-    #[doc = " @return"]
     pub fn cpg_iteration_next(
         handle: cpg_iteration_handle_t,
         description: *mut cpg_iteration_description_t,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief cpg_iteration_finalize"]
-    #[doc = " @param handle"]
-    #[doc = " @return"]
     pub fn cpg_iteration_finalize(handle: cpg_iteration_handle_t) -> cs_error_t;
 }
 #[repr(C)]

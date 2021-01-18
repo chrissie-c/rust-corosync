@@ -415,9 +415,7 @@ extern "C" {
 extern "C" {
     pub fn hdb_error_to_cs(res: ::std::os::raw::c_int) -> cs_error_t;
 }
-#[doc = " @brief votequorum_handle_t"]
 pub type votequorum_handle_t = u64;
-#[doc = " @brief The votequorum_info struct"]
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct votequorum_info {
@@ -432,21 +430,18 @@ pub struct votequorum_info {
     pub qdevice_votes: ::std::os::raw::c_uint,
     pub qdevice_name: [::std::os::raw::c_char; 255usize],
 }
-#[doc = " @brief The votequorum_node_t struct"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct votequorum_node_t {
     pub nodeid: u32,
     pub state: u32,
 }
-#[doc = " @brief The votequorum_ring_id_t struct"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct votequorum_ring_id_t {
     pub nodeid: u32,
     pub seq: u64,
 }
-#[doc = " @brief The votequorum_quorum_notification_fn_t callback"]
 pub type votequorum_quorum_notification_fn_t = ::std::option::Option<
     unsafe extern "C" fn(
         handle: votequorum_handle_t,
@@ -465,11 +460,9 @@ pub type votequorum_nodelist_notification_fn_t = ::std::option::Option<
         node_list: *mut u32,
     ),
 >;
-#[doc = " @brief The votequorum_expectedvotes_notification_fn_t callback"]
 pub type votequorum_expectedvotes_notification_fn_t = ::std::option::Option<
     unsafe extern "C" fn(handle: votequorum_handle_t, context: u64, expected_votes: u32),
 >;
-#[doc = " @brief The votequorum_callbacks_t struct"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct votequorum_callbacks_t {
@@ -478,50 +471,27 @@ pub struct votequorum_callbacks_t {
     pub votequorum_nodelist_notify_fn: votequorum_nodelist_notification_fn_t,
 }
 extern "C" {
-    #[doc = " @brief Create a new quorum connection"]
-    #[doc = " @param handle"]
-    #[doc = " @param callbacks"]
-    #[doc = " @return"]
     pub fn votequorum_initialize(
         handle: *mut votequorum_handle_t,
         callbacks: *mut votequorum_callbacks_t,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Close the quorum handle"]
-    #[doc = " @param handle"]
-    #[doc = " @return"]
     pub fn votequorum_finalize(handle: votequorum_handle_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Dispatch messages and configuration changes"]
-    #[doc = " @param handle"]
-    #[doc = " @param dispatch_types"]
-    #[doc = " @return"]
     pub fn votequorum_dispatch(
         handle: votequorum_handle_t,
         dispatch_types: cs_dispatch_flags_t,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Get a file descriptor on which to poll."]
-    #[doc = ""]
-    #[doc = " @note votequorum_handle_t is NOT a file descriptor and may not be used directly."]
-    #[doc = ""]
-    #[doc = " @param handle"]
-    #[doc = " @param fd"]
-    #[doc = " @return"]
     pub fn votequorum_fd_get(
         handle: votequorum_handle_t,
         fd: *mut ::std::os::raw::c_int,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Get quorum information."]
-    #[doc = " @param handle"]
-    #[doc = " @param nodeid"]
-    #[doc = " @param info"]
-    #[doc = " @return"]
     pub fn votequorum_getinfo(
         handle: votequorum_handle_t,
         nodeid: ::std::os::raw::c_uint,
@@ -529,21 +499,12 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief set expected_votes"]
-    #[doc = " @param handle"]
-    #[doc = " @param expected_votes"]
-    #[doc = " @return"]
     pub fn votequorum_setexpected(
         handle: votequorum_handle_t,
         expected_votes: ::std::os::raw::c_uint,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief set votes for a node"]
-    #[doc = " @param handle"]
-    #[doc = " @param nodeid"]
-    #[doc = " @param votes"]
-    #[doc = " @return"]
     pub fn votequorum_setvotes(
         handle: votequorum_handle_t,
         nodeid: ::std::os::raw::c_uint,
@@ -551,11 +512,6 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Track node and quorum changes"]
-    #[doc = " @param handle"]
-    #[doc = " @param context"]
-    #[doc = " @param flags"]
-    #[doc = " @return"]
     pub fn votequorum_trackstart(
         handle: votequorum_handle_t,
         context: u64,
@@ -563,60 +519,33 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief votequorum_trackstop"]
-    #[doc = " @param handle"]
-    #[doc = " @return"]
     pub fn votequorum_trackstop(handle: votequorum_handle_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Save and retrieve private data/context"]
-    #[doc = " @param handle"]
-    #[doc = " @param context"]
-    #[doc = " @return"]
     pub fn votequorum_context_get(
         handle: votequorum_handle_t,
         context: *mut *mut ::std::os::raw::c_void,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief votequorum_context_set"]
-    #[doc = " @param handle"]
-    #[doc = " @param context"]
-    #[doc = " @return"]
     pub fn votequorum_context_set(
         handle: votequorum_handle_t,
         context: *mut ::std::os::raw::c_void,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Register a quorum device"]
-    #[doc = ""]
-    #[doc = " it will be DEAD until polled"]
-    #[doc = ""]
-    #[doc = " @param handle"]
-    #[doc = " @param name"]
-    #[doc = " @return"]
     pub fn votequorum_qdevice_register(
         handle: votequorum_handle_t,
         name: *const ::std::os::raw::c_char,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Unregister a quorum device"]
-    #[doc = " @param handle"]
-    #[doc = " @param name"]
-    #[doc = " @return"]
     pub fn votequorum_qdevice_unregister(
         handle: votequorum_handle_t,
         name: *const ::std::os::raw::c_char,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Update registered name of a quorum device"]
-    #[doc = " @param handle"]
-    #[doc = " @param oldname"]
-    #[doc = " @param newname"]
-    #[doc = " @return"]
     pub fn votequorum_qdevice_update(
         handle: votequorum_handle_t,
         oldname: *const ::std::os::raw::c_char,
@@ -624,12 +553,6 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Poll a quorum device"]
-    #[doc = " @param handle"]
-    #[doc = " @param name"]
-    #[doc = " @param cast_vote"]
-    #[doc = " @param ring_id"]
-    #[doc = " @return"]
     pub fn votequorum_qdevice_poll(
         handle: votequorum_handle_t,
         name: *const ::std::os::raw::c_char,
@@ -638,11 +561,6 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Allow qdevice to tell votequorum if master_wins can be enabled or not"]
-    #[doc = " @param handle"]
-    #[doc = " @param name"]
-    #[doc = " @param allow"]
-    #[doc = " @return"]
     pub fn votequorum_qdevice_master_wins(
         handle: votequorum_handle_t,
         name: *const ::std::os::raw::c_char,

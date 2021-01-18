@@ -418,7 +418,6 @@ extern "C" {
 pub const QUORUM_MODEL_V0: quorum_model_t = 0;
 pub const QUORUM_MODEL_V1: quorum_model_t = 1;
 pub type quorum_model_t = ::std::os::raw::c_uint;
-#[doc = " @brief quorum_handle_t"]
 pub type quorum_handle_t = u64;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -426,7 +425,6 @@ pub struct quorum_ring_id {
     pub nodeid: u32,
     pub seq: u64,
 }
-#[doc = " @brief The quorum_notification_fn_t callback"]
 pub type quorum_notification_fn_t = ::std::option::Option<
     unsafe extern "C" fn(
         handle: quorum_handle_t,
@@ -457,7 +455,6 @@ pub type quorum_v1_nodelist_notification_fn_t = ::std::option::Option<
         left_list: *const u32,
     ),
 >;
-#[doc = " @brief The quorum_callbacks_t struct"]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct quorum_callbacks_t {
@@ -482,11 +479,6 @@ pub struct quorum_model_v1_data_t {
     pub nodelist_notify_fn: quorum_v1_nodelist_notification_fn_t,
 }
 extern "C" {
-    #[doc = " @brief Create a new quorum connection"]
-    #[doc = " @param handle"]
-    #[doc = " @param callbacks"]
-    #[doc = " @param quorum_type"]
-    #[doc = " @return"]
     pub fn quorum_initialize(
         handle: *mut quorum_handle_t,
         callbacks: *mut quorum_callbacks_t,
@@ -503,69 +495,36 @@ extern "C" {
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Close the quorum handle"]
-    #[doc = " @param handle"]
-    #[doc = " @return"]
     pub fn quorum_finalize(handle: quorum_handle_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Get a file descriptor on which to poll."]
-    #[doc = ""]
-    #[doc = " @note quorum_handle_t is NOT a file descriptor and may not be used directly."]
-    #[doc = ""]
-    #[doc = " @param handle"]
-    #[doc = " @param fd"]
-    #[doc = " @return"]
     pub fn quorum_fd_get(handle: quorum_handle_t, fd: *mut ::std::os::raw::c_int) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Dispatch messages and configuration changes"]
-    #[doc = " @param handle"]
-    #[doc = " @param dispatch_types"]
-    #[doc = " @return"]
     pub fn quorum_dispatch(
         handle: quorum_handle_t,
         dispatch_types: cs_dispatch_flags_t,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Get quorum information."]
-    #[doc = " @param handle"]
-    #[doc = " @param quorate"]
-    #[doc = " @return"]
     pub fn quorum_getquorate(
         handle: quorum_handle_t,
         quorate: *mut ::std::os::raw::c_int,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief Track node and quorum changes"]
-    #[doc = " @param handle"]
-    #[doc = " @param flags"]
-    #[doc = " @return"]
     pub fn quorum_trackstart(handle: quorum_handle_t, flags: ::std::os::raw::c_uint) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief quorum_trackstop"]
-    #[doc = " @param handle"]
-    #[doc = " @return"]
     pub fn quorum_trackstop(handle: quorum_handle_t) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief quorum_context_set"]
-    #[doc = " @param handle"]
-    #[doc = " @param context"]
-    #[doc = " @return"]
     pub fn quorum_context_set(
         handle: quorum_handle_t,
         context: *const ::std::os::raw::c_void,
     ) -> cs_error_t;
 }
 extern "C" {
-    #[doc = " @brief quorum_context_get"]
-    #[doc = " @param handle"]
-    #[doc = " @param context"]
-    #[doc = " @return"]
     pub fn quorum_context_get(
         handle: quorum_handle_t,
         context: *mut *const ::std::os::raw::c_void,
