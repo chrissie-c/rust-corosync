@@ -1,6 +1,13 @@
 # rust-corosync
 Rust bindings for corosync
 
-This is very much a work-in-progress but the plan is to
-have a full set of Rust bindings for corosync that behave in
-a reasonable Rust-y sort of way.
+This crate covers Rust bindings for the
+cfg, cmap, cpg, quorum, votequorum
+libraries in corosync.
+
+It is very much in an alpha state at the moment and APIs
+may well change as and when people start to use them.
+
+Please report bugs and offer any suggestions to ccaulfie@redhat.com
+
+https://corosync.github.io/corosync/

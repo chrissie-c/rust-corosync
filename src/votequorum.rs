@@ -328,7 +328,7 @@ pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
 }
 
 /// Track node and votequorum changes
-pub fn trackstart(handle: Handle, context: u64,flags: TrackFlags) -> Result<()>
+pub fn trackstart(handle: Handle, context: u64, flags: TrackFlags) -> Result<()>
 {
     let res =
 	unsafe {

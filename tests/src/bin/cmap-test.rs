@@ -34,7 +34,7 @@ fn main()
 
 
     // Test some SETs
-    match cmap::set_u32(handle, "test.test_uint32".to_string(), 456)
+    match cmap::set_u32(handle, &"test.test_uint32".to_string(), 456)
     {
 	Ok(_) => {}
 	Err(e) => {
@@ -43,7 +43,7 @@ fn main()
 	}
     };
 
-    match cmap::set_i16(handle, "test.test_int16".to_string(), -789)
+    match cmap::set_i16(handle, &"test.test_int16".to_string(), -789)
     {
 	Ok(_) => {}
 	Err(e) => {
@@ -52,7 +52,7 @@ fn main()
 	}
     };
 
-    match cmap::set_string(handle, "test.test_string".to_string(), "Hello from Rust".to_string())
+    match cmap::set_string(handle, &"test.test_string".to_string(), &"Hello from Rust".to_string())
     {
 	Ok(_) => {}
 	Err(e) => {
@@ -61,8 +61,8 @@ fn main()
 	}
     };
 
-    let test_d = cmap::Data::UInt64(0xdeadbeefcafebabe);
-    match cmap::set(handle, "test.test_data".to_string(), &test_d)
+    let test_d = cmap::Data::UInt64(0xdeadbeefbacecafe);
+    match cmap::set(handle, &"test.test_data".to_string(), &test_d)
     {
 	Ok(_) => {}
 	Err(e) => {
@@ -71,8 +71,19 @@ fn main()
 	}
     };
 
+    //    let test_d2 = cmap::Data::UInt32(6809);
+    let test_d2 = cmap::Data::String("Test string in data 12345".to_string());
+    match cmap::set(handle, &"test.test_again".to_string(), &test_d2)
+    {
+	Ok(_) => {}
+	Err(e) => {
+	    println!("Error in CMAP set_data2: {}", e);
+	    return;
+	}
+    };
+
     // get them back again
-    match cmap::get(handle, "test.test_uint32".to_string())
+    match cmap::get(handle, &"test.test_uint32".to_string())
     {
 	Ok(v) => {
 	    println!("GOT value {}", v);
@@ -83,19 +94,7 @@ fn main()
 	    return;
 	}
     };
-    match cmap::get(handle, "test.test_int16".to_string())
-    {
-	Ok(v) => {
-	    println!("GOT value {}", v);
-	}
-
-	Err(e) => {
-	    println!("Error in CMAP get: {}", e);
-	    return;
-	}
-    };
-
-    match cmap::get(handle, "test.test_string".to_string())
+    match cmap::get(handle, &"test.test_int16".to_string())
     {
 	Ok(v) => {
 	    println!("GOT value {}", v);
@@ -107,10 +106,25 @@ fn main()
 	}
     };
 
-    match cmap::get(handle, "test.test_data".to_string())
+    match cmap::get(handle, &"test.test_string".to_string())
     {
 	Ok(v) => {
-	    println!("GOT data value {:}", v);
+	    println!("GOT value {}", v);
+	}
+
+	Err(e) => {
+	    println!("Error in CMAP get: {}", e);
+	    return;
+	}
+    };
+
+    match cmap::get(handle, &"test.test_data".to_string())
+    {
+	Ok(v) => {
+	    match v {
+		cmap::Data::UInt64(u) => println!("GOT data value {:x}", u),
+		_ => println!("ERROR type was not UInt64, got {}", v),
+	    }
 	}
 
 	Err(e) => {

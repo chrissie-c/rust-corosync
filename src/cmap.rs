@@ -294,7 +294,7 @@ impl fmt::Display for Data {
 const CMAP_KEYNAME_MAXLENGTH : usize = 255;
 fn string_to_cstring_validated(key: &String, maxlen: usize) -> Result<CString>
 {
-    if maxlen > 0 && key.len() >= maxlen {
+    if maxlen > 0 && key.chars().count() >= maxlen {
 	return Err(CsError::CsErrInvalidParam);
     }
 
@@ -304,7 +304,7 @@ fn string_to_cstring_validated(key: &String, maxlen: usize) -> Result<CString>
     }
 }
 
-fn set_value(handle: Handle, key_name: String, datatype: DataType, value: *mut c_void, length: usize) -> Result<()>
+fn set_value(handle: Handle, key_name: &String, datatype: DataType, value: *mut c_void, length: usize) -> Result<()>
 {
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let res = unsafe {
@@ -321,7 +321,7 @@ fn set_value(handle: Handle, key_name: String, datatype: DataType, value: *mut c
 // I wanted to make a generic for these but the Rust functions
 // for getting a type in a generic function require the value
 // to be 'static, sorry
-pub fn set_u8(handle: Handle, key_name: String, value: u8) -> Result<()>
+pub fn set_u8(handle: Handle, key_name: &String, value: u8) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -329,7 +329,7 @@ pub fn set_u8(handle: Handle, key_name: String, value: u8) -> Result<()>
 }
 
 /// Sets an i8 value into cmap
-pub fn set_i8(handle: Handle, key_name: String, value: i8) -> Result<()>
+pub fn set_i8(handle: Handle, key_name: &String, value: i8) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -337,7 +337,7 @@ pub fn set_i8(handle: Handle, key_name: String, value: i8) -> Result<()>
 }
 
 /// Sets a u16 value into cmap
-pub fn set_u16(handle: Handle, key_name: String, value: u16) -> Result<()>
+pub fn set_u16(handle: Handle, key_name: &String, value: u16) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -345,7 +345,7 @@ pub fn set_u16(handle: Handle, key_name: String, value: u16) -> Result<()>
 }
 
 /// Sets an i16 value into cmap
-pub fn set_i16(handle: Handle, key_name: String, value: i16) -> Result<()>
+pub fn set_i16(handle: Handle, key_name: &String, value: i16) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -353,7 +353,7 @@ pub fn set_i16(handle: Handle, key_name: String, value: i16) -> Result<()>
 }
 
 /// Sets a u32 value into cmap
-pub fn set_u32(handle: Handle, key_name: String, value: u32) -> Result<()>
+pub fn set_u32(handle: Handle, key_name: &String, value: u32) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -361,7 +361,7 @@ pub fn set_u32(handle: Handle, key_name: String, value: u32) -> Result<()>
 }
 
 /// Sets an i32 value into cmap
-pub fn set_i132(handle: Handle, key_name: String, value: i32) -> Result<()>
+pub fn set_i132(handle: Handle, key_name: &String, value: i32) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -369,7 +369,7 @@ pub fn set_i132(handle: Handle, key_name: String, value: i32) -> Result<()>
 }
 
 /// Sets a u64 value into cmap
-pub fn set_u64(handle: Handle, key_name: String, value: u64) -> Result<()>
+pub fn set_u64(handle: Handle, key_name: &String, value: u64) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -377,7 +377,7 @@ pub fn set_u64(handle: Handle, key_name: String, value: u64) -> Result<()>
 }
 
 /// Sets an i64 value into cmap
-pub fn set_i164(handle: Handle, key_name: String, value: i64) -> Result<()>
+pub fn set_i164(handle: Handle, key_name: &String, value: i64) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -385,75 +385,76 @@ pub fn set_i164(handle: Handle, key_name: String, value: i64) -> Result<()>
 }
 
 /// Sets a string value into cmap
-pub fn set_string(handle: Handle, key_name: String, value: String) -> Result<()>
+pub fn set_string(handle: Handle, key_name: &String, value: &String) -> Result<()>
 {
     let v_string =  string_to_cstring_validated(&value, 0)?;
-    set_value(handle, key_name, DataType::String, v_string.as_ptr() as *mut c_void, value.len())
+    set_value(handle, key_name, DataType::String, v_string.as_ptr() as *mut c_void, value.chars().count())
 }
 
 /// Sets a binary value into cmap
-pub fn set_binary(handle: Handle, key_name: String, value: &[u8]) -> Result<()>
+pub fn set_binary(handle: Handle, key_name: &String, value: &[u8]) -> Result<()>
 {
     set_value(handle, key_name, DataType::Binary, value.as_ptr() as *mut c_void, value.len())
 }
 
 /// Sets a [Data] type into cmap
-pub fn set(handle: Handle, key_name: String, data: &Data) ->Result<()>
+pub fn set(handle: Handle, key_name: &String, data: &Data) ->Result<()>
 {
     let (datatype, datalen, c_value) = match data {
 	Data::Int8(v) => {
-	    let mut tmp = v;
+	    let mut tmp = *v;
 	    let cv: *mut c_void = &mut tmp as *mut _ as *mut c_void;
 	    (DataType::Int8, 1, cv)
 	},
 	Data::UInt8(v) => {
-	    let mut tmp = v;
+	    let mut tmp = *v;
 	    let cv: *mut c_void = &mut tmp as *mut _ as *mut c_void;
 	    (DataType::UInt8, 1, cv)
 	},
 	Data::Int16(v) => {
-	    let mut tmp = v;
+	    let mut tmp = *v;
 	    let cv: *mut c_void = &mut tmp as *mut _ as *mut c_void;
 	    (DataType::Int16, 2, cv)
 	},
 	Data::UInt16(v) => {
-	    let mut tmp = v;
+	    let mut tmp = *v;
 	    let cv: *mut c_void = &mut tmp as *mut _ as *mut c_void;
 	    (DataType::UInt8, 2, cv)
 	},
 	Data::Int32(v) => {
-	    let mut tmp = v;
+	    let mut tmp = *v;
 	    let cv: *mut c_void = &mut tmp as *mut _ as *mut c_void;
 	    (DataType::Int32, 4, cv)
 	},
 	Data::UInt32(v) => {
-	    let mut tmp = v;
+	    let mut tmp = *v;
 	    let cv: *mut c_void = &mut tmp as *mut _ as *mut c_void;
 	    (DataType::UInt32, 4, cv)
 	},
 	Data::Int64(v) => {
-	    let mut tmp = v;
+	    let mut tmp = *v;
 	    let cv: *mut c_void = &mut tmp as *mut _ as *mut c_void;
 	    (DataType::Int64, 8, cv)
 	},
 	Data::UInt64(v) => {
-	    let mut tmp = v;
+	    let mut tmp = *v;
 	    let cv: *mut c_void = &mut tmp as *mut _ as *mut c_void;
-	    (DataType::UInt64, 8,cv)
+	    (DataType::UInt64, 8, cv)
 	},
 	Data::Float(v)=> {
-	    let mut tmp = v;
+	    let mut tmp = *v;
 	    let cv: *mut c_void = &mut tmp as *mut _ as *mut c_void;
 	    (DataType::Float, 4, cv)
 	},
 	Data::Double(v) => {
-	    let mut tmp = v;
+	    let mut tmp = *v;
 	    let cv: *mut c_void = &mut tmp as *mut _ as *mut c_void;
 	    (DataType::Double, 8, cv)
 	},
 	Data::String(v) => {
-	    let cv = string_to_cstring_validated(&v, 0)?;
-	    (DataType::String, v.len(), cv.as_ptr() as *mut c_void)
+	    let cv = string_to_cstring_validated(v, 0)?;
+	    // Can't let cv go out of scope
+	    return set_value(handle, key_name, DataType::String, cv.as_ptr() as * mut c_void, v.chars().count());
 	},
 	Data::Binary(v) => {
 	    // Vec doesn't return quite the right types.
@@ -549,9 +550,9 @@ fn c_to_data(value_size: usize, c_key_type: u32, c_value: *const u8) -> Result<D
     }
 }
 
-/// Get a value from cmap, returned as a [Data[ struct, so could be anything!
+/// Get a value from cmap, returned as a [Data] struct, so could be anything!
 const INITIAL_SIZE : usize = 256;
-pub fn get(handle: Handle, key_name: String) -> Result<Data>
+pub fn get(handle: Handle, key_name: &String) -> Result<Data>
 {
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let mut value_size : usize = 16;
@@ -585,7 +586,7 @@ pub fn get(handle: Handle, key_name: String) -> Result<Data>
 }
 
 /// increment the value in a cmap key (must be a numeric type)
-pub fn inc(handle: Handle, key_name: String) -> Result<()>
+pub fn inc(handle: Handle, key_name: &String) -> Result<()>
 {
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let res = unsafe {
@@ -599,7 +600,7 @@ pub fn inc(handle: Handle, key_name: String) -> Result<()>
 }
 
 /// decrement the value in a cmap key (must be a numeric type)
-pub fn dec(handle: Handle, key_name: String) -> Result<()>
+pub fn dec(handle: Handle, key_name: &String) -> Result<()>
 {
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let res = unsafe {
@@ -665,7 +666,7 @@ pub struct NotifyCallback
 		      user_data: u64),
 }
 
-/// Track changes in cmap values, multiple [TrackHandles] per [Handle] are allowed
+/// Track changes in cmap values, multiple [TrackHandle]s per [Handle] are allowed
 pub fn track_add(handle: Handle,
 		 key_name: &String,
 		 track_type: TrackType,
