@@ -16,7 +16,6 @@ use std::slice;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use crate::{CsError, DispatchFlags, TrackFlags, Result, NodeId};
-use crate::cs_error_to_enum;
 
 #[derive(Copy, Clone)]
 pub enum ModelData {
@@ -178,7 +177,7 @@ pub fn initialize(model_data: &ModelData, context: u64) -> Result<(Handle, Quoru
 	    if res == ffi::quorum::CS_OK {
 		handle
 	    } else {
-		return Err(cs_error_to_enum(res))
+		return Err(CsError::from(res))
 	    }
 	};
 
@@ -206,7 +205,7 @@ pub fn finalize(handle: Handle) -> Result<()>
 	HANDLE_HASH.lock().unwrap().remove(&handle.quorum_handle);
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -224,7 +223,7 @@ pub fn fd_get(handle: Handle) -> Result<i32>
     if res == ffi::quorum::CS_OK {
 	Ok(c_fd as i32)
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -241,7 +240,7 @@ pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
     if res == ffi::quorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -264,7 +263,7 @@ pub fn getquorate(handle: Handle) -> Result<bool>
 	    _ => Err(CsError::CsErrLibrary),
 	}
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -280,7 +279,7 @@ pub fn trackstart(handle: Handle, flags: TrackFlags) -> Result<()>
     if res == ffi::quorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -295,7 +294,7 @@ pub fn trackstop(handle: Handle) -> Result<()>
     if res == ffi::quorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -315,7 +314,7 @@ pub fn context_get(handle: Handle) -> Result<u64>
     if res == ffi::quorum::CS_OK {
 	Ok(context)
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -334,6 +333,6 @@ pub fn context_set(handle: Handle, context: u64) -> Result<()>
     if res == ffi::quorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }

@@ -18,7 +18,7 @@ use std::ffi::CString;
 use std::fmt;
 
 use crate::{CsError, DispatchFlags, TrackFlags, Result, NodeId};
-use crate::{cs_error_to_enum, string_from_bytes};
+use crate::string_from_bytes;
 
 
 /// RingId returned by votequorum_notification_fn
@@ -228,7 +228,7 @@ pub fn initialize(callbacks: &Callbacks) -> Result<Handle>
 	    HANDLE_HASH.lock().unwrap().insert(handle, rhandle);
 	    Ok(rhandle)
 	} else {
-	    Err(cs_error_to_enum(res))
+	    Err(CsError::from(res))
 	}
     }
 }
@@ -246,7 +246,7 @@ pub fn finalize(handle: Handle) -> Result<()>
 	HANDLE_HASH.lock().unwrap().remove(&handle.votequorum_handle);
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -264,7 +264,7 @@ pub fn fd_get(handle: Handle) -> Result<i32>
     if res == ffi::votequorum::CS_OK {
 	Ok(c_fd as i32)
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -311,7 +311,7 @@ pub fn get_info(handle: Handle, nodeid: NodeId) -> Result<NodeInfo>
 	};
 	Ok(info)
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -327,7 +327,7 @@ pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
     if res == ffi::votequorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -343,7 +343,7 @@ pub fn trackstart(handle: Handle, context: u64,flags: TrackFlags) -> Result<()>
     if res == ffi::votequorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -358,7 +358,7 @@ pub fn trackstop(handle: Handle) -> Result<()>
     if res == ffi::votequorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -378,7 +378,7 @@ pub fn context_get(handle: Handle) -> Result<u64>
     if res == ffi::votequorum::CS_OK {
 	Ok(context)
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -397,7 +397,7 @@ pub fn context_set(handle: Handle, context: u64) -> Result<()>
     if res == ffi::votequorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -414,7 +414,7 @@ pub fn set_expected(handle: Handle, expected_votes: u32) -> Result<()>
     if res == ffi::votequorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -430,7 +430,7 @@ pub fn set_votes(handle: Handle, nodeid: NodeId, votes: u32) -> Result<()>
     if res == ffi::votequorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -454,7 +454,7 @@ pub fn qdevice_register(handle: Handle, name: &String) -> Result<()>
     if res == ffi::votequorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -478,7 +478,7 @@ pub fn qdevice_unregister(handle: Handle, name: &String) -> Result<()>
     if res == ffi::votequorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -508,7 +508,7 @@ pub fn qdevice_update(handle: Handle, oldname: &String, newname: &String) -> Res
     if res == ffi::votequorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -539,7 +539,7 @@ pub fn qdevice_poll(handle: Handle, name: &String, cast_vote: bool, ring_id: &Ri
     if res == ffi::votequorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -566,6 +566,6 @@ pub fn qdevice_master_wins(handle: Handle, name: &String, master_wins: bool) -> 
     if res == ffi::votequorum::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }

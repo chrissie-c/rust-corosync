@@ -16,7 +16,7 @@ use std::sync::Mutex;
 use std::ffi::CString;
 
 use crate::{CsError, DispatchFlags, Result, NodeId};
-use crate::{cs_error_to_enum, string_from_bytes};
+use crate::string_from_bytes;
 
 // Used to convert a CFG handle into one of ours
 lazy_static! {
@@ -115,7 +115,7 @@ pub fn initialize(callbacks: &Callbacks) -> Result<Handle>
 	    HANDLE_HASH.lock().unwrap().insert(handle, rhandle);
 	    Ok(rhandle)
 	} else {
-	    Err(cs_error_to_enum(res))
+	    Err(CsError::from(res))
 	}
     }
 }
@@ -133,7 +133,7 @@ pub fn finalize(handle: Handle) -> Result<()>
 	HANDLE_HASH.lock().unwrap().remove(&handle.cfg_handle);
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -151,7 +151,7 @@ pub fn fd_get(handle: Handle) -> Result<i32>
     if res == ffi::cfg::CS_OK {
 	Ok(c_fd as i32)
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -168,7 +168,7 @@ pub fn local_get(handle: Handle) -> Result<NodeId>
     if res == ffi::cfg::CS_OK {
 	Ok(NodeId::from(nodeid))
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -183,7 +183,7 @@ pub fn reload_cnfig(handle: Handle) -> Result<()>
     if res == ffi::cfg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -198,7 +198,7 @@ pub fn reopen_log_files(handle: Handle) -> Result<()>
     if res == ffi::cfg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -223,7 +223,7 @@ pub fn kill_node(handle: Handle, nodeid: NodeId, reason: &String) -> Result<()>
     if res == ffi::cfg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -244,7 +244,7 @@ pub fn try_shutdown(handle: Handle, flags: ShutdownFlags) -> Result<()>
     if res == ffi::cfg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -265,7 +265,7 @@ pub fn reply_to_shutdown(handle: Handle, flags: ShutdownReply) -> Result<()>
     if res == ffi::cfg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -281,7 +281,7 @@ pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
     if res == ffi::cfg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -360,7 +360,7 @@ pub fn node_status_get(handle: Handle, nodeid: NodeId, _version: NodeStatusVersi
 	if res == ffi::cfg::CS_OK {
 	    unpack_nodestatus(c_nodestatus)
 	} else {
-	    Err(cs_error_to_enum(res))
+	    Err(CsError::from(res))
 	}
     }
 }
@@ -377,7 +377,7 @@ pub fn track_start(handle: Handle, _flags: TrackFlags) -> Result<()>
     if res == ffi::cfg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -392,6 +392,6 @@ pub fn track_stop(handle: Handle) -> Result<()>
     if res == ffi::cfg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }

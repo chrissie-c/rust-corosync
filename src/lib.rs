@@ -9,14 +9,14 @@ pub mod cfg;
 pub mod cmap;
 
 use std::fmt;
-use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
 use std::ptr::copy_nonoverlapping;
 use std::ffi::CString;
+use std::error::Error;
 
 // This needs to be kept up-to-date!
 /// Error codes returned from the corosync libraries
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 #[repr(u32)]
 pub enum CsError {
     CsOk = 1,
@@ -93,18 +93,23 @@ impl fmt::Display for CsError {
     }
 }
 
+impl Error for CsError {}
+
 // This is dependant on the num_enum crate, converts a C cs_error_t into the Rust enum
 // There seems to be some debate as to whether this should be part of the language:
 // https://internals.rust-lang.org/t/pre-rfc-enum-from-integer/6348/25
-fn cs_error_to_enum(cserr: u32) -> CsError
-{
-    match CsError::try_from(cserr) {
-	Ok(e) => e,
-	Err(_) => CsError::CsErrRustCompat
+impl From<u32> for CsError {
+
+    fn from(cserr: u32) -> CsError
+    {
+	match CsError::try_from(cserr) {
+	    Ok(e) => e,
+	    Err(_) => CsError::CsErrRustCompat
+	}
     }
 }
 
-/// flags to use with dispatch functions, eg [cpg::dispatch]
+/// Flags to use with dispatch functions, eg [cpg::dispatch]
 #[derive(Copy, Clone)]
 // The numbers match the C enum, of course.
 pub enum DispatchFlags {
@@ -114,6 +119,7 @@ pub enum DispatchFlags {
     OneNonblocking = 4,
 }
 
+/// Flags to use with (most) tracking API calls
 #[derive(Copy, Clone)]
 // Same here
 pub enum TrackFlags {
@@ -122,7 +128,7 @@ pub enum TrackFlags {
     ChangesOnly = 4,
 }
 
-
+/// A corosync nodeid
 #[derive(Copy, Clone, Debug)]
 pub struct NodeId {
     id: u32,
@@ -148,7 +154,7 @@ impl From<NodeId> for u32 {
 }
 
 
-// General routine to copy bytes from a C array into a Rust String
+// General internal routine to copy bytes from a C array into a Rust String
 fn string_from_bytes(bytes: *const ::std::os::raw::c_char, max_length: usize) -> Result<String>
 {
     let mut newbytes = Vec::<u8>::new();

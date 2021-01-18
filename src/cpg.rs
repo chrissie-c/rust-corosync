@@ -22,7 +22,7 @@ use std::fmt;
 
 // General corosync things
 use crate::{CsError, DispatchFlags, Result, NodeId};
-use crate::{cs_error_to_enum, string_from_bytes};
+use crate::string_from_bytes;
 
 const CPG_NAMELEN_MAX: usize = 128;
 const CPG_MEMBERS_MAX: usize = 128;
@@ -328,7 +328,7 @@ pub fn initialize(model_data: &ModelData, context: u64) -> Result<Handle>
 	    HANDLE_HASH.lock().unwrap().insert(handle, rhandle);
 	    Ok(rhandle)
 	} else {
-	    Err(cs_error_to_enum(res))
+	    Err(CsError::from(res))
 	}
     }
 }
@@ -345,7 +345,7 @@ pub fn finalize(handle: Handle) -> Result<()>
 	HANDLE_HASH.lock().unwrap().remove(&handle.cpg_handle);
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -363,7 +363,7 @@ pub fn fd_get(handle: Handle) -> Result<i32>
     if res == ffi::cpg::CS_OK {
 	Ok(c_fd as i32)
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -379,7 +379,7 @@ pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
     if res == ffi::cpg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -396,7 +396,7 @@ pub fn join(handle: Handle, group: &String) -> Result<()>
     if res == ffi::cpg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -413,7 +413,7 @@ pub fn leave(handle: Handle, group: &String) -> Result<()>
     if res == ffi::cpg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -430,7 +430,7 @@ pub fn local_get(handle: Handle) -> Result<NodeId>
     if res == ffi::cpg::CS_OK {
 	Ok(NodeId::from(nodeid))
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -452,7 +452,7 @@ pub fn membership_get(handle: Handle, group: &String) -> Result<Vec::<Address>>
     if res == ffi::cpg::CS_OK {
 	Ok(cpg_array_to_vec(member_list.as_ptr(), member_list_entries as usize))
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -470,7 +470,7 @@ pub fn max_atomic_msgsize_get(handle: Handle) -> Result<u32>
     if res == ffi::cpg::CS_OK {
 	Ok(asize)
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -490,7 +490,7 @@ pub fn context_get(handle: Handle) -> Result<u64>
     if res == ffi::cpg::CS_OK {
 	Ok(context)
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -509,7 +509,7 @@ pub fn context_set(handle: Handle, context: u64) -> Result<()>
     if res == ffi::cpg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -529,7 +529,7 @@ pub fn flow_control_state_get(handle: Handle) -> Result<bool>
 	    Ok(false)
 	}
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -553,7 +553,7 @@ pub fn mcast_joined(handle: Handle, guarantee: Guarantee,
     if res == ffi::cpg::CS_OK {
 	Ok(())
     } else {
-	Err(cs_error_to_enum(res))
+	Err(CsError::from(res))
     }
 }
 
@@ -647,7 +647,7 @@ impl CpgIterStart {
 	if res == ffi::cpg::CS_OK {
 	    Ok(CpgIterStart{iter_handle})
 	} else {
-	    Err(cs_error_to_enum(res))
+	    Err(CsError::from(res))
 	}
     }
 }
