@@ -17,23 +17,26 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use crate::{CsError, DispatchFlags, TrackFlags, Result, NodeId};
 
+/// Data for model1 [initialize]
 #[derive(Copy, Clone)]
 pub enum ModelData {
     ModelNone,
     ModelV1 (Model1Data)
 }
 
+/// Indicates whether quorum is currently active on this cluster
 pub enum QuorumType {
     Free,
     Set
 }
 
+/// Flags for [initialize], none currently supported
 #[derive(Copy, Clone)]
 pub enum Model1Flags {
     None,
 }
 
-/// RingId returned by quorum_notification_fn
+/// RingId returned in quorum_notification_fn
 pub struct RingId {
     pub nodeid: NodeId,
     pub seq: u64,
@@ -123,6 +126,7 @@ extern "C" fn rust_nodelist_notification_fn(
 }
 
 #[derive(Copy, Clone)]
+/// Data for model1 [initialize]
 pub struct Model1Data {
     pub flags: Model1Flags,
     pub quorum_notification_fn: fn(hande: &Handle,
@@ -143,10 +147,10 @@ pub struct Handle {
     model_data: ModelData,
 }
 
-/// Initialize a connection to the quorum subsystem
-/// model_data: The type of initialization, and callbacks
-/// context:  arbitrary value returned in callbacks
-/// Returns a handle into the quorum library, and the quorum type (Free, or Set)
+
+/// Initialize a connection to the quorum library. You must call this before doing anything
+/// else and use the passed back [Handle].
+/// Remember to free the handle using [finalize] when finished.
 pub fn initialize(model_data: &ModelData, context: u64) -> Result<(Handle, QuorumType)>
 {
     let mut handle: ffi::quorum::quorum_handle_t = 0;
@@ -177,7 +181,7 @@ pub fn initialize(model_data: &ModelData, context: u64) -> Result<(Handle, Quoru
 	    if res == ffi::quorum::CS_OK {
 		handle
 	    } else {
-		return Err(CsError::from(res))
+		return Err(CsError::from_c(res))
 	    }
 	};
 
@@ -194,7 +198,6 @@ pub fn initialize(model_data: &ModelData, context: u64) -> Result<(Handle, Quoru
 
 
 /// Finish with a connection to corosync
-/// handle: a quorum handle as returned from [initialize]
 pub fn finalize(handle: Handle) -> Result<()>
 {
     let res =
@@ -205,14 +208,12 @@ pub fn finalize(handle: Handle) -> Result<()>
 	HANDLE_HASH.lock().unwrap().remove(&handle.quorum_handle);
 	Ok(())
     } else {
-	Err(CsError::from(res))
+	Err(CsError::from_c(res))
     }
 }
 
 // Not sure if an FD is the right thing to return here, but it will do for now.
 /// Return a file descriptor to use for poll/select on the QUORUM handle
-/// handle: quorum handle from [initialize]
-/// return: file descriptor
 pub fn fd_get(handle: Handle) -> Result<i32>
 {
     let c_fd: *mut c_int = &mut 0 as *mut _ as *mut c_int;
@@ -223,14 +224,12 @@ pub fn fd_get(handle: Handle) -> Result<i32>
     if res == ffi::quorum::CS_OK {
 	Ok(c_fd as i32)
     } else {
-	Err(CsError::from(res))
+	Err(CsError::from_c(res))
     }
 }
 
 
-/// Display any/all active QUORUM callbacks
-/// handle: a quorum handle as returned from [initialize]
-/// flags: [DispatchFlags]
+/// Display any/all active QUORUM callbacks for this [Handle], see [DispatchFlags] for details
 pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
 {
     let res =
@@ -240,13 +239,11 @@ pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
     if res == ffi::quorum::CS_OK {
 	Ok(())
     } else {
-	Err(CsError::from(res))
+	Err(CsError::from_c(res))
     }
 }
 
-/// Return a file descriptor to use for poll/select on the QUORUM handle
-/// handle: quorum handle from [initialize]
-/// return: boolean: true for quorate, false for inquorate
+/// Return the quorate status of the cluster
 pub fn getquorate(handle: Handle) -> Result<bool>
 {
     let c_quorate: *mut c_int = &mut 0 as *mut _ as *mut c_int;
@@ -263,13 +260,11 @@ pub fn getquorate(handle: Handle) -> Result<bool>
 	    _ => Err(CsError::CsErrLibrary),
 	}
     } else {
-	Err(CsError::from(res))
+	Err(CsError::from_c(res))
     }
 }
 
 /// Track node and quorum changes
-/// handle: a quorum handle as returned from [initialize]
-/// flags: [TrackFlags]
 pub fn trackstart(handle: Handle, flags: TrackFlags) -> Result<()>
 {
     let res =
@@ -279,12 +274,11 @@ pub fn trackstart(handle: Handle, flags: TrackFlags) -> Result<()>
     if res == ffi::quorum::CS_OK {
 	Ok(())
     } else {
-	Err(CsError::from(res))
+	Err(CsError::from_c(res))
     }
 }
 
 /// Stop tracking node and quorum changes
-/// handle: a quorum handle as returned from [initialize]
 pub fn trackstop(handle: Handle) -> Result<()>
 {
     let res =
@@ -294,14 +288,13 @@ pub fn trackstop(handle: Handle) -> Result<()>
     if res == ffi::quorum::CS_OK {
 	Ok(())
     } else {
-	Err(CsError::from(res))
+	Err(CsError::from_c(res))
     }
 }
 
 /// Get the current 'context' value for this handle
 /// The context value is an arbitrary value that is always passed
 /// back to callbacks to help identify the source
-/// handle: a quorum handle as returned from [initialize]
 pub fn context_get(handle: Handle) -> Result<u64>
 {
     let (res, context) =
@@ -314,7 +307,7 @@ pub fn context_get(handle: Handle) -> Result<u64>
     if res == ffi::quorum::CS_OK {
 	Ok(context)
     } else {
-	Err(CsError::from(res))
+	Err(CsError::from_c(res))
     }
 }
 
@@ -322,7 +315,6 @@ pub fn context_get(handle: Handle) -> Result<u64>
 /// The context value is an arbitrary value that is always passed
 /// back to callbacks to help identify the source.
 /// Normally this is set in [initialize], but this allows it to be changed
-/// handle: a quorum handle as returned from [initialize]
 pub fn context_set(handle: Handle, context: u64) -> Result<()>
 {
     let res =
@@ -333,6 +325,6 @@ pub fn context_set(handle: Handle, context: u64) -> Result<()>
     if res == ffi::quorum::CS_OK {
 	Ok(())
     } else {
-	Err(CsError::from(res))
+	Err(CsError::from_c(res))
     }
 }

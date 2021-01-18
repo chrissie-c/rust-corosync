@@ -61,6 +61,16 @@ fn main()
 	}
     };
 
+    let test_d = cmap::Data::UInt64(0xdeadbeefcafebabe);
+    match cmap::set(handle, "test.test_data".to_string(), &test_d)
+    {
+	Ok(_) => {}
+	Err(e) => {
+	    println!("Error in CMAP set_data: {}", e);
+	    return;
+	}
+    };
+
     // get them back again
     match cmap::get(handle, "test.test_uint32".to_string())
     {
@@ -89,6 +99,18 @@ fn main()
     {
 	Ok(v) => {
 	    println!("GOT value {}", v);
+	}
+
+	Err(e) => {
+	    println!("Error in CMAP get: {}", e);
+	    return;
+	}
+    };
+
+    match cmap::get(handle, "test.test_data".to_string())
+    {
+	Ok(v) => {
+	    println!("GOT data value {:}", v);
 	}
 
 	Err(e) => {

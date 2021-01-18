@@ -2,13 +2,28 @@
 extern crate lazy_static;
 #[macro_use]
 extern crate bitflags;
+/// cpg is the Control Process Groups subsystem of corosync and is usually used for sending
+/// messages around the cluster. All processes using CPG belong to a named group (whose members
+/// they can query) and all messages are sent with delivery guarantees.
 pub mod cpg;
+/// Quorum provides basic information about the quorate state of the cluster with callbacks
+/// when nodelists change.
 pub mod quorum;
+///votequorum is the main quorum provider for corosync, using this API, users can query the state
+/// of nodes in the cluster, request callbacks when the nodelists change, and set up a quorum device.
 pub mod votequorum;
+/// cfg is the internal configuration and information library for corosync, it is
+/// mainly used by internal tools but may also contain API calls useful to some applications
+/// that need detailed information about or control of the operation of corosync and the cluster.
 pub mod cfg;
+/// cmap is the internal 'database' of corosync - though it is NOT replicated. Mostly it contains
+/// a copy of the corosync.conf file and information about the running state of the daemon.
+/// The cmap API provides two 'maps'. Icmap, which is as above, and Stats, which contains very detailed
+/// statistics on the running system, this includes network and IPC calls.
 pub mod cmap;
 
 use std::fmt;
+use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
 use std::ptr::copy_nonoverlapping;
 use std::ffi::CString;
@@ -16,7 +31,7 @@ use std::error::Error;
 
 // This needs to be kept up-to-date!
 /// Error codes returned from the corosync libraries
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, TryFromPrimitive)]
 #[repr(u32)]
 pub enum CsError {
     CsOk = 1,
@@ -49,6 +64,7 @@ pub enum CsError {
     CsErrContextNotFound = 28,
     CsErrTooManyGroups = 30,
     CsErrSecurity = 100,
+#[num_enum(default)]
     CsErrRustCompat = 998, // Set if we get a unknown return from corosync
     CsErrRustString = 999, // Set if we get a string conversion error
 }
@@ -98,9 +114,8 @@ impl Error for CsError {}
 // This is dependant on the num_enum crate, converts a C cs_error_t into the Rust enum
 // There seems to be some debate as to whether this should be part of the language:
 // https://internals.rust-lang.org/t/pre-rfc-enum-from-integer/6348/25
-impl From<u32> for CsError {
-
-    fn from(cserr: u32) -> CsError
+impl CsError {
+    fn from_c(cserr: u32) -> CsError
     {
 	match CsError::try_from(cserr) {
 	    Ok(e) => e,
@@ -109,7 +124,13 @@ impl From<u32> for CsError {
     }
 }
 
+
 /// Flags to use with dispatch functions, eg [cpg::dispatch]
+/// One will dispatch a single callback (blocking) and return.
+/// All will loop trying to dispatch all possible callbacks.
+/// Blocking is like All but will block between callbacks.
+/// OneNonBlocking will dispatch a single callback only if one is available,
+/// otherwise it will return even if no callback is available.
 #[derive(Copy, Clone)]
 // The numbers match the C enum, of course.
 pub enum DispatchFlags {
