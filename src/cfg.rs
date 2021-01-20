@@ -79,8 +79,8 @@ pub struct LinkStatus
     pub dst_ipaddr: String,
 }
 
-/// Structire returned from [node_status_get], shows all the details of a node
-/// that ius known to corosync, including all configured links
+/// Structure returned from [node_status_get], shows all the details of a node
+/// that is known to corosync, including all configured links
 pub struct NodeStatus
 {
     pub version: NodeStatusVersion,
@@ -225,7 +225,7 @@ pub fn kill_node(handle: Handle, nodeid: NodeId, reason: &String) -> Result<()>
     }
 }
 
-/// Ask this cluster node to shutdown. if [ShutdownFlags] is set to Request then
+/// Ask this cluster node to shutdown. If [ShutdownFlags] is set to Request then
 ///it may be refused by other applications
 /// that have registered for shutdown callbacks.
 pub fn try_shutdown(handle: Handle, flags: ShutdownFlags) -> Result<()>
@@ -328,7 +328,7 @@ fn new_ls() -> ffi::cfg::corosync_knet_link_status_v1
     }
 }
 
-/// Get the extended status of a node in the cluster (including active links) from its [NodeId]
+/// Get the extended status of a node in the cluster (including active links) from its [NodeId].
 /// Returns a filled in [NodeStatus] struct
 pub fn node_status_get(handle: Handle, nodeid: NodeId, _version: NodeStatusVersion) -> Result<NodeStatus>
 {

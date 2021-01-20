@@ -62,7 +62,7 @@ impl fmt::Debug for NodeState {
     }
 }
 
-/// Basic information about a node in the cluster. [NodeId], and [NodeState]
+/// Basic information about a node in the cluster. Contains [NodeId], and [NodeState]
 pub struct Node
 {
     nodeid: NodeId,
@@ -204,7 +204,7 @@ pub struct Callbacks {
 					  expected_votes: u32),
 }
 
-/// A handle into the votequorum library. returned from [initialize] and needed for all other calls
+/// A handle into the votequorum library. Returned from [initialize] and needed for all other calls
 #[derive(Copy, Clone)]
 pub struct Handle {
     votequorum_handle: u64,
@@ -313,7 +313,7 @@ pub fn get_info(handle: Handle, nodeid: NodeId) -> Result<NodeInfo>
     }
 }
 
-/// Call any/all active votequorum callbacks for this [Handle] see [DispatchFlags] for details
+/// Call any/all active votequorum callbacks for this [Handle]. see [DispatchFlags] for details
 pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
 {
     let res =
@@ -355,7 +355,7 @@ pub fn trackstop(handle: Handle) -> Result<()>
     }
 }
 
-/// Get the current 'context' value for this handle
+/// Get the current 'context' value for this handle.
 /// The context value is an arbitrary value that is always passed
 /// back to callbacks to help identify the source
 pub fn context_get(handle: Handle) -> Result<u64>
@@ -374,10 +374,10 @@ pub fn context_get(handle: Handle) -> Result<u64>
     }
 }
 
-/// Set the current 'context' value for this handle
+/// Set the current 'context' value for this handle.
 /// The context value is an arbitrary value that is always passed
 /// back to callbacks to help identify the source.
-/// Normally this is set in [initialize], but this allows it to be changed
+/// Normally this is set in [trackstart], but this allows it to be changed
 pub fn context_set(handle: Handle, context: u64) -> Result<()>
 {
     let res =

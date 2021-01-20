@@ -153,7 +153,7 @@ pub enum ModelData {
 }
 
 
-/// A handle into the cpg library. returned from [initialize] and needed for all other calls
+/// A handle into the cpg library. Returned from [initialize] and needed for all other calls
 #[derive(Copy, Clone)]
 pub struct Handle {
     cpg_handle: u64, // Corosync library handle
@@ -396,7 +396,7 @@ pub fn join(handle: Handle, group: &String) -> Result<()>
 }
 
 /// Leave the currently joined CPG group, another group can now be joined on
-/// the same [Handle] or ]finalize] can be called to finish using CPG
+/// the same [Handle] or [finalize] can be called to finish using CPG
 pub fn leave(handle: Handle, group: &String) -> Result<()>
 {
     let res =
@@ -446,7 +446,7 @@ pub fn membership_get(handle: Handle, group: &String) -> Result<Vec::<Address>>
     }
 }
 
-/// Get the maximum size that CPG can send in one corosync mesage,
+/// Get the maximum size that CPG can send in one corosync message,
 /// any messages sent via [mcast_joined] that are larger than this
 /// will be fragmented
 pub fn max_atomic_msgsize_get(handle: Handle) -> Result<u32>
@@ -463,7 +463,7 @@ pub fn max_atomic_msgsize_get(handle: Handle) -> Result<u32>
     }
 }
 
-/// Get the current 'context' value for this handle
+/// Get the current 'context' value for this handle.
 /// The context value is an arbitrary value that is always passed
 /// back to callbacks to help identify the source
 pub fn context_get(handle: Handle) -> Result<u64>
@@ -482,7 +482,7 @@ pub fn context_get(handle: Handle) -> Result<u64>
     }
 }
 
-/// Set the current 'context' value for this handle
+/// Set the current 'context' value for this handle.
 /// The context value is an arbitrary value that is always passed
 /// back to callbacks to help identify the source.
 /// Normally this is set in [initialize], but this allows it to be changed

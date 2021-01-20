@@ -68,6 +68,9 @@ pub enum CsError {
     CsErrRustCompat = 998, // Set if we get a unknown return from corosync
     CsErrRustString = 999, // Set if we get a string conversion error
 }
+
+/// Result type returned from most corosync library calls.
+/// Contains a [CsError] and possibly other data as required
 pub type Result<T> = ::std::result::Result<T, CsError>;
 
 impl fmt::Display for CsError {

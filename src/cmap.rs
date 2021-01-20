@@ -133,8 +133,8 @@ pub fn finalize(handle: Handle) -> Result<()>
     }
 }
 
-/// Return a file descriptor to use for poll/select on the CMAP handle
-/// Takes a [Handle] as returned from [initialize]
+/// Return a file descriptor to use for poll/select on the CMAP handle.
+/// Takes a [Handle] as returned from [initialize],
 /// returns a C file descriptor as i32
 pub fn fd_get(handle: Handle) -> Result<i32>
 {
@@ -150,9 +150,9 @@ pub fn fd_get(handle: Handle) -> Result<i32>
     }
 }
 
-/// Display any/all active CMAP callbacks
+/// Dispatch any/all active CMAP callbacks.
 /// Takes a [Handle] as returned from [initialize],
-/// flags [DispatchFlags] tell how may items to dispatch before returning
+/// flags [DispatchFlags] tells it how many items to dispatch before returning
 pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
 {
     let res =
@@ -233,7 +233,7 @@ fn cmap_to_enum(cmap_type: u32) -> DataType
     }
 }
 
-/// Data returned from the cmap::get() call and tracker & iterators
+/// Data returned from the cmap::get() call and tracker & iterators.
 /// Contains the data itself and the type of that data.
 pub enum Data {
     Int8(i8),
@@ -550,8 +550,9 @@ fn c_to_data(value_size: usize, c_key_type: u32, c_value: *const u8) -> Result<D
     }
 }
 
-/// Get a value from cmap, returned as a [Data] struct, so could be anything!
 const INITIAL_SIZE : usize = 256;
+
+/// Get a value from cmap, returned as a [Data] struct, so could be anything
 pub fn get(handle: Handle, key_name: &String) -> Result<Data>
 {
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;

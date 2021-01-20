@@ -24,7 +24,7 @@ pub enum ModelData {
     ModelV1 (Model1Data)
 }
 
-/// Indicates whether quorum is currently active on this cluster
+/// Value returned from [initialize]. Indicates whether quorum is currently active on this cluster.
 pub enum QuorumType {
     Free,
     Set
@@ -140,7 +140,7 @@ pub struct Model1Data {
 				     left_list: Vec<NodeId>),
 }
 
-// Our internal state
+/// A handle into the quorum library. Returned from [initialize] and needed for all other calls
 #[derive(Copy, Clone)]
 pub struct Handle {
     quorum_handle: u64,
@@ -292,7 +292,7 @@ pub fn trackstop(handle: Handle) -> Result<()>
     }
 }
 
-/// Get the current 'context' value for this handle
+/// Get the current 'context' value for this handle.
 /// The context value is an arbitrary value that is always passed
 /// back to callbacks to help identify the source
 pub fn context_get(handle: Handle) -> Result<u64>
@@ -311,7 +311,7 @@ pub fn context_get(handle: Handle) -> Result<u64>
     }
 }
 
-/// Set the current 'context' value for this handle
+/// Set the current 'context' value for this handle.
 /// The context value is an arbitrary value that is always passed
 /// back to callbacks to help identify the source.
 /// Normally this is set in [initialize], but this allows it to be changed
