@@ -78,10 +78,14 @@ extern "C" fn rust_quorum_notification_fn(
 	    };
 	    match &h.model_data {
 		ModelData::ModelV1(md) =>
-		    (md.quorum_notification_fn)(h,
-						r_quorate,
-						r_ring_id,
-						r_member_list),
+		    match md.quorum_notification_fn {
+			Some(cb) =>
+			    (cb)(h,
+				 r_quorate,
+				 r_ring_id,
+				 r_member_list),
+			None => {}
+		    }
 		_ => {}
 	    }
 	}
@@ -112,11 +116,15 @@ extern "C" fn rust_nodelist_notification_fn(
 
 	    match &h.model_data {
 		ModelData::ModelV1(md) =>
-		    (md.nodelist_notification_fn)(h,
-						  r_ring_id,
-						  r_member_list,
-						  r_joined_list,
-						  r_left_list),
+		    match md.nodelist_notification_fn {
+			Some(cb) =>
+			    (cb)(h,
+				 r_ring_id,
+				 r_member_list,
+				 r_joined_list,
+				 r_left_list),
+			None => {}
+		    }
 		_ => {}
 	    }
 	}
@@ -129,15 +137,15 @@ extern "C" fn rust_nodelist_notification_fn(
 /// Data for model1 [initialize]
 pub struct Model1Data {
     pub flags: Model1Flags,
-    pub quorum_notification_fn: fn(hande: &Handle,
-				   quorate: bool,
-				   ring_id: RingId,
-				   member_list: Vec<NodeId>),
-    pub nodelist_notification_fn: fn(hande: &Handle,
-				     ring_id: RingId,
-				     member_list: Vec<NodeId>,
-				     joined_list: Vec<NodeId>,
-				     left_list: Vec<NodeId>),
+    pub quorum_notification_fn: Option<fn(hande: &Handle,
+					quorate: bool,
+					ring_id: RingId,
+					member_list: Vec<NodeId>)>,
+    pub nodelist_notification_fn: Option<fn(hande: &Handle,
+					    ring_id: RingId,
+					    member_list: Vec<NodeId>,
+					    joined_list: Vec<NodeId>,
+					    left_list: Vec<NodeId>)>,
 }
 
 /// A handle into the quorum library. Returned from [initialize] and needed for all other calls

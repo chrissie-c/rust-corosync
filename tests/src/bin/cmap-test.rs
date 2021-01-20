@@ -167,7 +167,7 @@ fn main()
 	    }
 	};
 
-    let cb = cmap::NotifyCallback{notify_fn: track_notify_fn};
+    let cb = cmap::NotifyCallback{notify_fn: Some(track_notify_fn)};
     let _track_handle =
 	match cmap::track_add(handle, &"stats.srp.memb_merge_detect_tx".to_string(),
 			      cmap::TrackType::MODIFY |cmap::TrackType::ADD | cmap::TrackType::DELETE,

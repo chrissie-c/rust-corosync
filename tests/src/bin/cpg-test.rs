@@ -54,11 +54,11 @@ fn main() {
     let md = cpg::ModelData::ModelV1 (
 	cpg::Model1Data {
 	    flags: cpg::Model1Flags::None,
-	    deliver_fn,
-	    confchg_fn,
-	    totem_confchg_fn,
+	    deliver_fn: Some(deliver_fn),
+	    confchg_fn: Some(confchg_fn),
+	    totem_confchg_fn: Some(totem_confchg_fn),
 	}
-	);
+    );
 
     let handle =
 	match cpg::initialize(&md, 99 as u64) {

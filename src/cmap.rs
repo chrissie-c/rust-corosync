@@ -642,10 +642,14 @@ extern "C" fn rust_notify_fn(cmap_handle: ffi::cmap::cmap_handle_t,
 			Err(_) => return,
 		    };
 
-		    (h.notify_callback.notify_fn)(r_cmap_handle, h, TrackType{bits: event},
-						  &r_keyname,
-						  &r_old, &r_new,
-						  user_data as u64);
+		    match h.notify_callback.notify_fn {
+			Some(cb) =>
+			    (cb)(r_cmap_handle, h, TrackType{bits: event},
+				 &r_keyname,
+				 &r_old, &r_new,
+				 user_data as u64),
+			None => {}
+		    }
 		}
 		None => {}
 	    }
@@ -658,13 +662,13 @@ extern "C" fn rust_notify_fn(cmap_handle: ffi::cmap::cmap_handle_t,
 #[derive(Copy, Clone)]
 pub struct NotifyCallback
 {
-    pub notify_fn: fn(handle: &Handle,
-		      track_handle: &TrackHandle,
-		      event: TrackType,
-		      key_name: &String,
-		      new_value: &Data,
-		      old_value: &Data,
-		      user_data: u64),
+    pub notify_fn: Option<fn(handle: &Handle,
+			     track_handle: &TrackHandle,
+			     event: TrackType,
+			     key_name: &String,
+			     new_value: &Data,
+			     old_value: &Data,
+			     user_data: u64)>,
 }
 
 /// Track changes in cmap values, multiple [TrackHandle]s per [Handle] are allowed

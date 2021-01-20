@@ -34,7 +34,7 @@ fn main()
 {
     // Initialise the callbacks data
     let cb = cfg::Callbacks {
-	corosync_cfg_shutdown_callback_fn: shutdown_check_fn,
+	corosync_cfg_shutdown_callback_fn: Some(shutdown_check_fn),
     };
 
     let handle =

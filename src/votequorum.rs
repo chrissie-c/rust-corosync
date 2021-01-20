@@ -123,10 +123,13 @@ extern "C" fn rust_expectedvotes_notification_fn(
     expected_votes: u32)
 {
     match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) =>  {
-	    (h.callbacks.expectedvotes_notification_fn)(h,
-							context,
-							expected_votes);
+	Some(h) => {
+	    match h.callbacks.expectedvotes_notification_fn {
+		Some(cb) => (cb)(h,
+				 context,
+				 expected_votes),
+		None => {}
+	    }
 	}
 	None => {}
     }
@@ -154,11 +157,13 @@ extern "C" fn rust_quorum_notification_fn(
 		    r_node_list.push(Node{nodeid: NodeId::from(temp_members[i].nodeid),
 					  state: NodeState::new(temp_members[i].state)} );
 		}
-
-	    (h.callbacks.quorum_notification_fn)(h,
-						 context,
-						 r_quorate,
-						 r_node_list);
+	    match h.callbacks.quorum_notification_fn {
+		Some (cb) => (cb)(h,
+				  context,
+				  r_quorate,
+				  r_node_list),
+		None => {}
+	    }
 	}
 	None => {}
     }
@@ -179,10 +184,14 @@ extern "C" fn rust_nodelist_notification_fn(
 
 	    let r_node_list = list_to_vec(node_list_entries, node_list);
 
-	    (h.callbacks.nodelist_notification_fn)(h,
-						   context,
-						   r_ring_id,
-						   r_node_list);
+	    match h.callbacks.nodelist_notification_fn {
+		Some (cb) =>
+		    (cb)(h,
+			 context,
+			 r_ring_id,
+			 r_node_list),
+		None => {}
+	    }
 	}
 	None => {}
     }
@@ -191,17 +200,17 @@ extern "C" fn rust_nodelist_notification_fn(
 /// Callbacks that can be called from votequorum, pass these in to [initialize]
 #[derive(Copy, Clone)]
 pub struct Callbacks {
-    pub quorum_notification_fn: fn(hande: &Handle,
-				   context: u64,
-				   quorate: bool,
-				   node_list: Vec<Node>),
-    pub nodelist_notification_fn: fn(hande: &Handle,
-				     context: u64,
-				     ring_id: RingId,
-				     node_list: Vec<NodeId>),
-    pub expectedvotes_notification_fn: fn(handle: &Handle,
+    pub quorum_notification_fn: Option<fn(hande: &Handle,
 					  context: u64,
-					  expected_votes: u32),
+					  quorate: bool,
+					  node_list: Vec<Node>)>,
+    pub nodelist_notification_fn: Option<fn(hande: &Handle,
+					    context: u64,
+					    ring_id: RingId,
+					    node_list: Vec<NodeId>)>,
+    pub expectedvotes_notification_fn: Option<fn(handle: &Handle,
+						 context: u64,
+						 expected_votes: u32)>,
 }
 
 /// A handle into the votequorum library. Returned from [initialize] and needed for all other calls

@@ -126,23 +126,23 @@ impl fmt::Debug for Address {
 #[derive(Copy, Clone)]
 pub struct Model1Data {
     pub flags: Model1Flags,
-    pub deliver_fn: fn(handle: &Handle,
-		       group_name: String,
-		       nodeid: NodeId,
-		       pid: u32,
-		       msg: &[u8],
-		       msg_len: usize,
-    ),
-    pub confchg_fn: fn(handle: &Handle,
-		       group_name: &str,
-		       member_list: Vec<Address>,
-		       left_list: Vec<Address>,
-		       joined_list: Vec<Address>,
-    ),
-    pub totem_confchg_fn: fn(handle: &Handle,
-			     ring_id: RingId,
-			     member_list: Vec<NodeId>,
-    ),
+    pub deliver_fn: Option<fn(handle: &Handle,
+			      group_name: String,
+			      nodeid: NodeId,
+			      pid: u32,
+			      msg: &[u8],
+			      msg_len: usize,
+    )>,
+    pub confchg_fn: Option<fn(handle: &Handle,
+			      group_name: &str,
+			      member_list: Vec<Address>,
+			      left_list: Vec<Address>,
+			      joined_list: Vec<Address>,
+    )>,
+    pub totem_confchg_fn: Option<fn(handle: &Handle,
+				    ring_id: RingId,
+				    member_list: Vec<NodeId>,
+    )>,
 }
 
 /// Modeldata for [initialize], only v1 supported at the moment
@@ -224,12 +224,16 @@ extern "C" fn rust_deliver_fn(
 
 	    match h.model_data {
 		ModelData::ModelV1(md) =>
-		    (md.deliver_fn)(h,
-				    r_group_name.to_string(),
-				    NodeId::from(nodeid),
-				    pid,
-				    data,
-				    msg_len),
+		    match md.deliver_fn {
+			Some(cb) =>
+			    (cb)(h,
+				 r_group_name.to_string(),
+				 NodeId::from(nodeid),
+				 pid,
+				 data,
+				 msg_len),
+			None => {}
+		    }
 		_ => {}
 	    }
 	}
@@ -257,12 +261,17 @@ extern "C" fn rust_confchg_fn(handle: ffi::cpg::cpg_handle_t,
 	    let r_joined_list = cpg_array_to_vec(joined_list, joined_list_entries);
 
 	    match h.model_data {
-		ModelData::ModelV1(md) =>
-		    (md.confchg_fn)(h,
-				    &r_group_name.to_string(),
-				    r_member_list,
-				    r_left_list,
-				    r_joined_list),
+		ModelData::ModelV1(md) => {
+		    match md.confchg_fn {
+			Some(cb) =>
+			    (cb)(h,
+				 &r_group_name.to_string(),
+				 r_member_list,
+				 r_left_list,
+				 r_joined_list),
+			None => {}
+		    }
+		}
 		_ => {}
 	    }
 	}
@@ -288,9 +297,13 @@ extern "C" fn rust_totem_confchg_fn(handle: ffi::cpg::cpg_handle_t,
 
 	    match h.model_data {
 		ModelData::ModelV1(md) =>
-		    (md.totem_confchg_fn)(h,
-					  r_ring_id,
-					  r_member_list),
+		    match md.totem_confchg_fn {
+			Some(cb) =>
+			    (cb)(h,
+				 r_ring_id,
+				 r_member_list),
+			None => {}
+		    }
 		_ => {}
 	    }
 	}

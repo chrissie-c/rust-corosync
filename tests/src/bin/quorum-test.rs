@@ -35,8 +35,8 @@ fn main() {
     let md = quorum::ModelData::ModelV1 (
 	quorum::Model1Data {
 	    flags: quorum::Model1Flags::None,
-	    quorum_notification_fn: quorum_fn,
-	    nodelist_notification_fn: nodelist_fn,
+	    quorum_notification_fn: Some(quorum_fn),
+	    nodelist_notification_fn: Some(nodelist_fn),
 	}
     );
 

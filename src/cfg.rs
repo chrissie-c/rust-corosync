@@ -27,8 +27,8 @@ lazy_static! {
 /// with a [ShutdownReply] of either Yes or No.
 #[derive(Copy, Clone)]
 pub struct Callbacks {
-    pub corosync_cfg_shutdown_callback_fn: fn(handle: &Handle,
-					      flags: u32)
+    pub corosync_cfg_shutdown_callback_fn: Option<fn(handle: &Handle,
+						     flags: u32)>
 }
 
 /// A handle into the cfg library. returned from [initialize] and needed for all other calls
@@ -97,7 +97,13 @@ pub struct NodeStatus
 extern "C" fn rust_shutdown_notification_fn(handle: ffi::cfg::corosync_cfg_handle_t, flags: u32)
 {
     match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) => (h.callbacks.corosync_cfg_shutdown_callback_fn)(h, flags),
+	Some(h) => {
+	    match h.callbacks.corosync_cfg_shutdown_callback_fn {
+		Some(cb) =>
+		    (cb)(h, flags),
+		None => {}
+	    }
+	}
 	None => {}
     }
 }
@@ -346,7 +352,7 @@ pub fn node_status_get(handle: Handle, nodeid: NodeId, _version: NodeStatusVersi
 	    onwire_ver:0,
 	    link_status: [new_ls(); 8],
 	};
-	
+
 	let res = ffi::cfg::corosync_cfg_node_status_get(handle.cfg_handle, u32::from(nodeid), 1, &mut c_nodestatus as *mut _ as *mut c_void);
 
 	if res == ffi::cfg::CS_OK {

@@ -35,9 +35,9 @@ fn main() {
 
     // Initialise the model data
     let cb = votequorum::Callbacks {
-	quorum_notification_fn: quorum_fn,
-	nodelist_notification_fn: nodelist_fn,
-	expectedvotes_notification_fn: expectedvotes_fn,
+	quorum_notification_fn: Some(quorum_fn),
+	nodelist_notification_fn: Some(nodelist_fn),
+	expectedvotes_notification_fn: Some(expectedvotes_fn),
     };
 
     let handle =
