@@ -1,7 +1,84 @@
+//! This crate provides access to the corosync libraries cpg, cfg, cmap, quorum & votequorum
+//! from Rust. They are a fairly thin layer around the actual API calls but with Rust data types
+//! and iterators.
+//!
+//! Corosync is a low-level provider of cluster services for high-availability clusters,
+//! for more information about corosync see https://corosync.github.io/corosync/
+//!
+//! No more information about corosync itself will be provided here, it is expected that if
+//! you feel you need access to the Corosync API calls, you know what they do :)
+//!
+//! # Example
+//! ```
+//! extern crate rust_corosync as corosync;
+//! use corosync::cmap;
+//!
+//! fn main()
+//! {
+//!     // Open connection to corosync libcmap
+//!     let handle =
+//! 	match cmap::initialize(cmap::Map::Icmap) {
+//! 	    Ok(h) => {
+//!             println!("cmap initialized.");
+//!             h
+//! 	    }
+//! 	    Err(e) => {
+//!             println!("Error in CMAP (Icmap) init: {}", e);
+//!             return;
+//! 	    }
+//! 	};
+//!
+//!     // Set a value
+//!     match cmap::set_u32(handle, &"test.test_uint32".to_string(), 456)
+//!     {
+//! 	    Ok(_) => {}
+//! 	    Err(e) => {
+//! 	        println!("Error in CMAP set_u32: {}", e);
+//! 	        return;
+//! 	    }
+//!     };
+//!
+//!     // Get a value - this will be a Data struct
+//!     match cmap::get(handle, &"test.test_uint32".to_string())
+//!     {
+//!         Ok(v) => {
+//! 	        println!("GOT value {}", v);
+//! 	    }
+//! 	    Err(e) => {
+//! 	        println!("Error in CMAP get: {}", e);
+//! 	        return;
+//! 	    }
+//!     };
+//!
+//!     // Use an iterator
+//!     match cmap::CmapIterStart::new(handle, &"totem.".to_string()) {
+//! 	    Ok(cmap_iter) => {
+//! 	        for i in cmap_iter {
+//!                 println!("ITER: {:?}", i);
+//! 	        }
+//! 	        println!("");
+//! 	    }
+//! 	    Err(e) => {
+//! 	        println!("Error in CMAP iter start: {}", e);
+//! 	    }
+//!     }
+//!
+//!     // Close this connection
+//!     match cmap::finalize(handle)
+//!     {
+//! 	    Ok(_) => {}
+//! 	    Err(e) => {
+//! 	        println!("Error in CMAP get: {}", e);
+//! 	        return;
+//! 	    }
+//!     };
+//! }
+
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate bitflags;
+
 /// cpg is the Control Process Groups subsystem of corosync and is usually used for sending
 /// messages around the cluster. All processes using CPG belong to a named group (whose members
 /// they can query) and all messages are sent with delivery guarantees.
