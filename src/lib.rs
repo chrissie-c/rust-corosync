@@ -99,6 +99,8 @@ pub mod cfg;
 /// statistics on the running system, this includes network and IPC calls.
 pub mod cmap;
 
+mod sys;
+
 use std::fmt;
 use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
