@@ -4,13 +4,14 @@ version = "0.1.0"
 authors = ["Christine Caulfield <ccaulfie@redhat.com>"]
 edition = "2018"
 readme = "README.md"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/chrissie-c/rust-corosync"
 description = "Rust bindings for corosync libraries"
 categories = ["api-bindings"]
 keywords = ["cluster", "high-availability"]
 
 [dependencies]
-rust-corosync-sys = { path = "rust-corosync-sys" }
+rust-corosync-sys = { version = "0.1.0", path = "rust-corosync-sys" }
 lazy_static = "1.4.0"
 num_enum = "0.5.1"
 bitflags = "1.2.1"
