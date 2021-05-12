@@ -65,32 +65,26 @@ extern "C" fn rust_quorum_notification_fn(
     member_list_entries: u32,
     member_list: *const u32)
 {
-    match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) =>  {
-	    let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
-				   seq: ring_id.seq};
-	    let r_member_list = list_to_vec(member_list_entries, member_list);
-	    let r_quorate = match quorate {
-		0 => false,
-		1 => true,
-		_ => false,
-	    };
-	    match &h.model_data {
-		ModelData::ModelV1(md) =>
-		    match md.quorum_notification_fn {
-			Some(cb) =>
-			    (cb)(h,
-				 r_quorate,
-				 r_ring_id,
-				 r_member_list),
-			None => {}
-		    }
-		_ => {}
-	    }
+    if let Some(h) = HANDLE_HASH.lock().unwrap().get(&handle) {
+	let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
+			       seq: ring_id.seq};
+	let r_member_list = list_to_vec(member_list_entries, member_list);
+	let r_quorate = match quorate {
+	    0 => false,
+	    1 => true,
+	    _ => false,
+	};
+	match &h.model_data {
+	    ModelData::ModelV1(md) =>
+		if let Some(cb) = md.quorum_notification_fn {
+		    (cb)(h,
+			 r_quorate,
+			 r_ring_id,
+			 r_member_list);
+		}
+	    _ => {}
 	}
-	None => {}
     }
-
 }
 
 
@@ -104,32 +98,26 @@ extern "C" fn rust_nodelist_notification_fn(
     left_list_entries: u32,
     left_list: *const u32)
 {
-    match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) =>  {
-	    let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
-				   seq: ring_id.seq};
+    if let Some(h) = HANDLE_HASH.lock().unwrap().get(&handle) {
+	let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
+			       seq: ring_id.seq};
 
-	    let r_member_list = list_to_vec(member_list_entries, member_list);
-	    let r_joined_list = list_to_vec(joined_list_entries, joined_list);
-	    let r_left_list = list_to_vec(left_list_entries, left_list);
+	let r_member_list = list_to_vec(member_list_entries, member_list);
+	let r_joined_list = list_to_vec(joined_list_entries, joined_list);
+	let r_left_list = list_to_vec(left_list_entries, left_list);
 
-	    match &h.model_data {
-		ModelData::ModelV1(md) =>
-		    match md.nodelist_notification_fn {
-			Some(cb) =>
-			    (cb)(h,
-				 r_ring_id,
-				 r_member_list,
-				 r_joined_list,
-				 r_left_list),
-			None => {}
-		    }
-		_ => {}
-	    }
+	match &h.model_data {
+	    ModelData::ModelV1(md) =>
+		if let Some(cb) = md.nodelist_notification_fn {
+		    (cb)(h,
+			 r_ring_id,
+			 r_member_list,
+			 r_joined_list,
+			 r_left_list);
+		}
+	    _ => {}
 	}
-	None => {}
     }
-
 }
 
 #[derive(Copy, Clone)]

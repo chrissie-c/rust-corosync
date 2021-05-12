@@ -17,10 +17,10 @@ fn deliver_fn(_handle: &cpg::Handle,
     match  str::from_utf8(msg) {
 	Ok(s) => println!("  {}", s),
 	Err(_) => {
-	    for i in 0..msg_len {
-		print!("{:02x} ", msg[i]);
+	    for i in msg {
+		print!("{:02x} ", i);
 	    }
-	    println!("");
+	    println!();
 	}
     }
 }
@@ -61,7 +61,7 @@ fn main() {
     );
 
     let handle =
-	match cpg::initialize(&md, 99 as u64) {
+	match cpg::initialize(&md, 99_u64) {
 	    Ok(h) => h,
 	    Err(e) => {
 		println!("Error in CPG init: {}", e);
@@ -70,12 +70,9 @@ fn main() {
 	};
 
 
-    match cpg::join(handle, &"TEST".to_owned()) {
-	Ok(_) => {},
-	Err(e) => {
-	    println!("Error in CPG join: {}", e);
-	    return;
-	}
+    if let Err(e) = cpg::join(handle, &"TEST".to_owned()) {
+	println!("Error in CPG join: {}", e);
+	return;
     }
 
     match cpg::local_get(handle) {
@@ -91,7 +88,7 @@ fn main() {
     match cpg::membership_get(handle, &"TEST".to_owned()) {
 	Ok(m) => {
 	    println!("  members: {:?}", m);
-	    println!("");
+	    println!();
 	},
 	Err(e) => {
 	    println!("Error in CPG membership_get: {}", e);
@@ -100,12 +97,9 @@ fn main() {
 
     // Test context APIs
     let set_context: u64=0xabcdbeefcafe;
-    match cpg::context_set(handle, set_context) {
-	Ok(_) => {},
-	Err(e) => {
-	    println!("Error in CPG context_set: {}", e);
-	    return;
-	}
+    if let Err(e) = cpg::context_set(handle, set_context) {
+	println!("Error in CPG context_set: {}", e);
+	return;
     }
 
     // NOTE This will fail on 32 bit systems because void* is not u64
@@ -126,7 +120,7 @@ fn main() {
 	    for i in cpg_iter {
 		println!("ITER: {:?}", i);
 	    }
-	    println!("");
+	    println!();
 	}
 	Err(e) => {
 	    println!("Error in CPG iter start: {}", e);
@@ -134,19 +128,15 @@ fn main() {
     }
 
     // We should receive our own message (at least) in the event loop
-    match cpg::mcast_joined(handle, cpg::Guarantee::TypeAgreed,
-			    &"This is a test".to_string().into_bytes()) {
-	Ok(_) => {}
-	Err(e) => {
-	    println!("Error in CPG mcast_joined: {}", e);
-	}
+    if let Err(e) = cpg::mcast_joined(handle, cpg::Guarantee::TypeAgreed,
+				      &"This is a test".to_string().into_bytes()) {
+	println!("Error in CPG mcast_joined: {}", e);
     }
 
     // Wait for events
     loop {
-	match cpg::dispatch(handle, corosync::DispatchFlags::One) {
-	    Ok(_) => {}
-	    Err(_) => break,
+	if cpg::dispatch(handle, corosync::DispatchFlags::One).is_err() {
+	    break;
 	}
     }
     println!("ERROR: Corosync quit");

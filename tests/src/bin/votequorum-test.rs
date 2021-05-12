@@ -54,12 +54,8 @@ fn main() {
 
     // Test context APIs
     let set_context: u64=0xabcdbeefcafe;
-    match votequorum::context_set(handle, set_context) {
-	Ok(_) => {},
-	Err(e) => {
+    if let Err(e) = votequorum::context_set(handle, set_context) {
 	    println!("Error in VOTEQUORUM context_set: {}", e);
-	    return;
-	}
     }
 
     // NOTE This will fail on 32 bit systems because void* is not u64
@@ -76,11 +72,8 @@ fn main() {
 
     const QDEVICE_NAME : &str = "RustQdevice";
 
-    match votequorum::qdevice_register(handle, &QDEVICE_NAME.to_string()) {
-	Ok(_) => {},
-	Err(e) => {
-	    println!("Error in VOTEQUORUM qdevice_register: {}", e);
-	}
+    if let Err(e) = votequorum::qdevice_register(handle, &QDEVICE_NAME.to_string()) {
+	println!("Error in VOTEQUORUM qdevice_register: {}", e);
     }
 
     match votequorum::get_info(handle, corosync::NodeId::from(1u32)) {
@@ -105,26 +98,19 @@ fn main() {
 	}
     }
 
-    match votequorum::qdevice_unregister(handle, &QDEVICE_NAME.to_string()) {
-	Ok(_) => {},
-	Err(e) => {
-	    println!("Error in VOTEQUORUM qdevice_unregister: {}", e);
-	}
+    if let Err(e) = votequorum::qdevice_unregister(handle, &QDEVICE_NAME.to_string()) {
+	println!("Error in VOTEQUORUM qdevice_unregister: {}", e);
     }
 
-    match votequorum::trackstart(handle, 99 as u64, corosync::TrackFlags::Changes) {
-	Ok(_) => {},
-	Err(e) => {
-	    println!("Error in VOTEQUORUM trackstart: {}", e);
-	    return;
-	}
+    if let Err(e) = votequorum::trackstart(handle, 99_u64, corosync::TrackFlags::Changes) {
+	println!("Error in VOTEQUORUM trackstart: {}", e);
+	return;
     }
 
     // Wait for events
     loop {
-	match votequorum::dispatch(handle, corosync::DispatchFlags::One) {
-	    Ok(_) => {}
-	    Err(_) => break,
+	if votequorum::dispatch(handle, corosync::DispatchFlags::One).is_err() {
+	    break;
 	}
     }
     println!("ERROR: Corosync quit");

@@ -96,15 +96,10 @@ pub struct NodeStatus
 
 extern "C" fn rust_shutdown_notification_fn(handle: ffi::corosync_cfg_handle_t, flags: u32)
 {
-    match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) => {
-	    match h.callbacks.corosync_cfg_shutdown_callback_fn {
-		Some(cb) =>
-		    (cb)(h, flags),
-		None => {}
-	    }
+    if let Some(h) = HANDLE_HASH.lock().unwrap().get(&handle) {
+	if let Some(cb) = h.callbacks.corosync_cfg_shutdown_callback_fn {
+	    (cb)(h, flags);
 	}
-	None => {}
     }
 }
 
@@ -116,15 +111,15 @@ pub fn initialize(callbacks: &Callbacks) -> Result<Handle>
 {
     let mut handle: ffi::corosync_cfg_handle_t = 0;
 
-    let mut c_callbacks = ffi::corosync_cfg_callbacks_t {
+    let c_callbacks = ffi::corosync_cfg_callbacks_t {
 	corosync_cfg_shutdown_callback: Some(rust_shutdown_notification_fn),
     };
 
     unsafe {
 	let res = ffi::corosync_cfg_initialize(&mut handle,
-						    &mut c_callbacks);
+					       &c_callbacks);
 	if res == ffi::CS_OK {
-	    let rhandle = Handle{cfg_handle: handle, callbacks: callbacks.clone()};
+	    let rhandle = Handle{cfg_handle: handle, callbacks: *callbacks};
 	    HANDLE_HASH.lock().unwrap().insert(handle, rhandle);
 	    Ok(rhandle)
 	} else {
@@ -211,10 +206,10 @@ pub fn reopen_log_files(handle: Handle) -> Result<()>
 
 /// Tell another cluster node to shutdown. reason is a string that
 /// will be written to the system log files.
-pub fn kill_node(handle: Handle, nodeid: NodeId, reason: &String) -> Result<()>
+pub fn kill_node(handle: Handle, nodeid: NodeId, reason: &str) -> Result<()>
 {
     let c_string = {
-	match CString::new(reason.as_str()) {
+	match CString::new(reason) {
 	    Ok(cs) => cs,
 	    Err(_) => return Err(CsError::CsErrInvalidParam),
 	}
@@ -288,7 +283,7 @@ pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
 // Quick & dirty u8 to boolean
 fn u8_to_bool(val: u8) -> bool
 {
-    if val == 0 {false} else {true}
+    val != 0
 }
 
 const CFG_MAX_LINKS: usize = 8;

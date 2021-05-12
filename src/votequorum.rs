@@ -122,16 +122,12 @@ extern "C" fn rust_expectedvotes_notification_fn(
     context: u64,
     expected_votes: u32)
 {
-    match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) => {
-	    match h.callbacks.expectedvotes_notification_fn {
-		Some(cb) => (cb)(h,
-				 context,
-				 expected_votes),
-		None => {}
-	    }
+    if let Some(h) = HANDLE_HASH.lock().unwrap().get(&handle) {
+	if let Some(cb) = h.callbacks.expectedvotes_notification_fn {
+	    (cb)(h,
+		 context,
+		 expected_votes);
 	}
-	None => {}
     }
 }
 
@@ -143,29 +139,25 @@ extern "C" fn rust_quorum_notification_fn(
     node_list_entries: u32,
     node_list: *mut ffi::votequorum_node_t)
 {
-    match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) =>  {
-	    let r_quorate = match quorate {
-		0 => false,
-		1 => true,
-		_ => false,
-	    };
-	    let mut r_node_list = Vec::<Node>::new();
-	    let temp_members: &[ffi::votequorum_node_t] =
-		unsafe { slice::from_raw_parts(node_list, node_list_entries as usize) };
-		for i in 0..node_list_entries as usize {
-		    r_node_list.push(Node{nodeid: NodeId::from(temp_members[i].nodeid),
-					  state: NodeState::new(temp_members[i].state)} );
-		}
-	    match h.callbacks.quorum_notification_fn {
-		Some (cb) => (cb)(h,
-				  context,
-				  r_quorate,
-				  r_node_list),
-		None => {}
-	    }
+    if let Some(h) = HANDLE_HASH.lock().unwrap().get(&handle) {
+	let r_quorate = match quorate {
+	    0 => false,
+	    1 => true,
+	    _ => false,
+	};
+	let mut r_node_list = Vec::<Node>::new();
+	let temp_members: &[ffi::votequorum_node_t] =
+	    unsafe { slice::from_raw_parts(node_list, node_list_entries as usize) };
+	for i in 0..node_list_entries as usize {
+	    r_node_list.push(Node{nodeid: NodeId::from(temp_members[i].nodeid),
+				  state: NodeState::new(temp_members[i].state)} );
 	}
-	None => {}
+	if let Some(cb) = h.callbacks.quorum_notification_fn {
+	    (cb)(h,
+		 context,
+		 r_quorate,
+		 r_node_list);
+	}
     }
 }
 
@@ -177,23 +169,18 @@ extern "C" fn rust_nodelist_notification_fn(
     node_list_entries: u32,
     node_list: *mut u32)
 {
-    match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) =>  {
-	    let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
-				   seq: ring_id.seq};
+    if let Some(h) = HANDLE_HASH.lock().unwrap().get(&handle) {
+	let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
+			       seq: ring_id.seq};
 
-	    let r_node_list = list_to_vec(node_list_entries, node_list);
+	let r_node_list = list_to_vec(node_list_entries, node_list);
 
-	    match h.callbacks.nodelist_notification_fn {
-		Some (cb) =>
-		    (cb)(h,
-			 context,
-			 r_ring_id,
-			 r_node_list),
-		None => {}
-	    }
+	if let Some(cb) = h.callbacks.nodelist_notification_fn {
+	    (cb)(h,
+		 context,
+		 r_ring_id,
+		 r_node_list);
 	}
-	None => {}
     }
 }
 
@@ -237,7 +224,7 @@ pub fn initialize(callbacks: &Callbacks) -> Result<Handle>
 	let res = ffi::votequorum_initialize(&mut handle,
 							 &mut c_callbacks);
 	if res == ffi::CS_OK {
-	    let rhandle = Handle{votequorum_handle: handle, callbacks: callbacks.clone()};
+	    let rhandle = Handle{votequorum_handle: handle, callbacks: *callbacks};
 	    HANDLE_HASH.lock().unwrap().insert(handle, rhandle);
 	    Ok(rhandle)
 	} else {
@@ -433,10 +420,10 @@ pub fn set_votes(handle: Handle, nodeid: NodeId, votes: u32) -> Result<()>
 
 
 /// Register a quorum device
-pub fn qdevice_register(handle: Handle, name: &String) -> Result<()>
+pub fn qdevice_register(handle: Handle, name: &str) -> Result<()>
 {
     let c_string = {
-	match CString::new(name.as_str()) {
+	match CString::new(name) {
 	    Ok(cs) => cs,
 	    Err(_) => return Err(CsError::CsErrInvalidParam),
 	}
@@ -455,10 +442,10 @@ pub fn qdevice_register(handle: Handle, name: &String) -> Result<()>
 
 
 /// Unregister a quorum device
-pub fn qdevice_unregister(handle: Handle, name: &String) -> Result<()>
+pub fn qdevice_unregister(handle: Handle, name: &str) -> Result<()>
 {
     let c_string = {
-	match CString::new(name.as_str()) {
+	match CString::new(name) {
 	    Ok(cs) => cs,
 	    Err(_) => return Err(CsError::CsErrInvalidParam),
 	}
@@ -476,16 +463,16 @@ pub fn qdevice_unregister(handle: Handle, name: &String) -> Result<()>
 }
 
 /// Update the name of a quorum device
-pub fn qdevice_update(handle: Handle, oldname: &String, newname: &String) -> Result<()>
+pub fn qdevice_update(handle: Handle, oldname: &str, newname: &str) -> Result<()>
 {
     let on_string = {
-	match CString::new(oldname.as_str()) {
+	match CString::new(oldname) {
 	    Ok(cs) => cs,
 	    Err(_) => return Err(CsError::CsErrInvalidParam),
 	}
     };
     let nn_string = {
-	match CString::new(newname.as_str()) {
+	match CString::new(newname) {
 	    Ok(cs) => cs,
 	    Err(_) => return Err(CsError::CsErrInvalidParam),
 	}
@@ -506,10 +493,10 @@ pub fn qdevice_update(handle: Handle, oldname: &String, newname: &String) -> Res
 /// Poll a quorum device
 /// This must be done more often than the qdevice timeout (default 10s) while the device is active
 /// and the [RingId] must match the current value returned from the callbacks for it to be accepted.
-pub fn qdevice_poll(handle: Handle, name: &String, cast_vote: bool, ring_id: &RingId) -> Result<()>
+pub fn qdevice_poll(handle: Handle, name: &str, cast_vote: bool, ring_id: &RingId) -> Result<()>
 {
     let c_string = {
-	match CString::new(name.as_str()) {
+	match CString::new(name) {
 	    Ok(cs) => cs,
 	    Err(_) => return Err(CsError::CsErrInvalidParam),
 	}
@@ -533,10 +520,10 @@ pub fn qdevice_poll(handle: Handle, name: &String, cast_vote: bool, ring_id: &Ri
 
 
 /// Allow qdevice to tell votequorum if master_wins can be enabled or not
-pub fn qdevice_master_wins(handle: Handle, name: &String, master_wins: bool) -> Result<()>
+pub fn qdevice_master_wins(handle: Handle, name: &str, master_wins: bool) -> Result<()>
 {
     let c_string = {
-	match CString::new(name.as_str()) {
+	match CString::new(name) {
 	    Ok(cs) => cs,
 	    Err(_) => return Err(CsError::CsErrInvalidParam),
 	}

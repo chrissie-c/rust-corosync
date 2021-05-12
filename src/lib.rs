@@ -17,60 +17,60 @@
 //! {
 //!     // Open connection to corosync libcmap
 //!     let handle =
-//! 	match cmap::initialize(cmap::Map::Icmap) {
-//! 	    Ok(h) => {
+//!     match cmap::initialize(cmap::Map::Icmap) {
+//!         Ok(h) => {
 //!             println!("cmap initialized.");
 //!             h
-//! 	    }
-//! 	    Err(e) => {
+//!         }
+//!         Err(e) => {
 //!             println!("Error in CMAP (Icmap) init: {}", e);
 //!             return;
-//! 	    }
-//! 	};
+//!         }
+//!     };
 //!
 //!     // Set a value
 //!     match cmap::set_u32(handle, &"test.test_uint32".to_string(), 456)
 //!     {
-//! 	    Ok(_) => {}
-//! 	    Err(e) => {
-//! 	        println!("Error in CMAP set_u32: {}", e);
-//! 	        return;
-//! 	    }
+//!         Ok(_) => {}
+//!         Err(e) => {
+//!             println!("Error in CMAP set_u32: {}", e);
+//!             return;
+//!         }
 //!     };
 //!
 //!     // Get a value - this will be a Data struct
 //!     match cmap::get(handle, &"test.test_uint32".to_string())
 //!     {
 //!         Ok(v) => {
-//! 	        println!("GOT value {}", v);
-//! 	    }
-//! 	    Err(e) => {
-//! 	        println!("Error in CMAP get: {}", e);
-//! 	        return;
-//! 	    }
+//!             println!("GOT value {}", v);
+//!         }
+//!         Err(e) => {
+//!             println!("Error in CMAP get: {}", e);
+//!             return;
+//!         }
 //!     };
 //!
 //!     // Use an iterator
 //!     match cmap::CmapIterStart::new(handle, &"totem.".to_string()) {
-//! 	    Ok(cmap_iter) => {
-//! 	        for i in cmap_iter {
+//!         Ok(cmap_iter) => {
+//!             for i in cmap_iter {
 //!                 println!("ITER: {:?}", i);
-//! 	        }
-//! 	        println!("");
-//! 	    }
-//! 	    Err(e) => {
-//! 	        println!("Error in CMAP iter start: {}", e);
-//! 	    }
+//!             }
+//!             println!("");
+//!         }
+//!         Err(e) => {
+//!             println!("Error in CMAP iter start: {}", e);
+//!         }
 //!     }
 //!
 //!     // Close this connection
 //!     match cmap::finalize(handle)
 //!     {
-//! 	    Ok(_) => {}
-//! 	    Err(e) => {
-//! 	        println!("Error in CMAP get: {}", e);
-//! 	        return;
-//! 	    }
+//!         Ok(_) => {}
+//!         Err(e) => {
+//!             println!("Error in CMAP get: {}", e);
+//!             return;
+//!         }
 //!     };
 //! }
 
@@ -272,13 +272,11 @@ fn string_from_bytes(bytes: *const ::std::os::raw::c_char, max_length: usize) ->
 
     // Get length of the string in old-fashioned style
     let mut length: usize = 0;
-    let mut count : usize = 0;
-    for i in &newbytes {
+    for (count, i) in newbytes.iter().enumerate() {
 	if *i == 0 && length == 0 {
 	    length = count;
 	    break;
 	}
-	count += 1;
     }
 
     // Cope with an empty string

@@ -6,7 +6,7 @@ use corosync::{cmap};
 fn track_notify_fn(_handle: &cmap::Handle,
 		   _track_handle: &cmap::TrackHandle,
 		   event: cmap::TrackType,
-		   key_name: &String,
+		   key_name: &str,
 		   old_value: &cmap::Data,
 		   new_value: &cmap::Data,
 		   user_data: u64)
@@ -34,52 +34,32 @@ fn main()
 
 
     // Test some SETs
-    match cmap::set_u32(handle, &"test.test_uint32".to_string(), 456)
-    {
-	Ok(_) => {}
-	Err(e) => {
-	    println!("Error in CMAP set_u32: {}", e);
-	    return;
-	}
+    if let Err(e) = cmap::set_u32(handle, &"test.test_uint32".to_string(), 456) {
+	println!("Error in CMAP set_u32: {}", e);
+	return;
     };
 
-    match cmap::set_i16(handle, &"test.test_int16".to_string(), -789)
-    {
-	Ok(_) => {}
-	Err(e) => {
-	    println!("Error in CMAP set_i16: {}", e);
-	    return;
-	}
+    if let Err(e) = cmap::set_i16(handle, &"test.test_int16".to_string(), -789) {
+	println!("Error in CMAP set_i16: {}", e);
+	return;
     };
 
-    match cmap::set_string(handle, &"test.test_string".to_string(), &"Hello from Rust".to_string())
-    {
-	Ok(_) => {}
-	Err(e) => {
-	    println!("Error in CMAP set_string: {}", e);
-	    return;
-	}
+    if let Err(e) = cmap::set_string(handle, &"test.test_string".to_string(), &"Hello from Rust".to_string()) {
+	println!("Error in CMAP set_string: {}", e);
+	return;
     };
 
     let test_d = cmap::Data::UInt64(0xdeadbeefbacecafe);
-    match cmap::set(handle, &"test.test_data".to_string(), &test_d)
-    {
-	Ok(_) => {}
-	Err(e) => {
-	    println!("Error in CMAP set_data: {}", e);
-	    return;
-	}
+    if let Err(e) = cmap::set(handle, &"test.test_data".to_string(), &test_d) {
+	println!("Error in CMAP set_data: {}", e);
+	return;
     };
 
     //    let test_d2 = cmap::Data::UInt32(6809);
     let test_d2 = cmap::Data::String("Test string in data 12345".to_string());
-    match cmap::set(handle, &"test.test_again".to_string(), &test_d2)
-    {
-	Ok(_) => {}
-	Err(e) => {
-	    println!("Error in CMAP set_data2: {}", e);
-	    return;
-	}
+    if let Err(e) = cmap::set(handle, &"test.test_again".to_string(), &test_d2) {
+	println!("Error in CMAP set_data2: {}", e);
+	return;
     };
 
     // get them back again
@@ -139,7 +119,7 @@ fn main()
 	    for i in cmap_iter {
 		println!("ITER: {:?}", i);
 	    }
-	    println!("");
+	    println!();
 	}
 	Err(e) => {
 	    println!("Error in CMAP iter start: {}", e);
@@ -147,13 +127,9 @@ fn main()
     }
 
     // Close this handle
-    match cmap::finalize(handle)
-    {
-	Ok(_) => {}
-	Err(e) => {
-	    println!("Error in CMAP get: {}", e);
-	    return;
-	}
+    if let Err(e) = cmap::finalize(handle) {
+	println!("Error in CMAP get: {}", e);
+	return;
     };
 
 
@@ -183,9 +159,8 @@ fn main()
     // Wait for events
     let mut event_num = 0;
     loop {
-	match cmap::dispatch(handle, corosync::DispatchFlags::One) {
-	    Ok(_) => {}
-	    Err(e) => println!("Error from CMAP dispatch: {}", e)
+	if let Err(e) = cmap::dispatch(handle, corosync::DispatchFlags::One) {
+	    println!("Error from CMAP dispatch: {}", e);
 	}
 	// Just do 5
 	event_num += 1;

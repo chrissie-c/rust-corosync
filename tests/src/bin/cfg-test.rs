@@ -8,9 +8,8 @@ use std::thread::spawn;
 fn dispatch_thread(handle: cfg::Handle)
 {
     loop {
-	match cfg::dispatch(handle, corosync::DispatchFlags::One) {
-	    Ok(_) => {}
-	    Err(_) => return,
+	if cfg::dispatch(handle, corosync::DispatchFlags::One).is_err() {
+	    return;
 	}
     }
 }
@@ -21,11 +20,8 @@ fn shutdown_check_fn(handle: &cfg::Handle, _flags: u32)
     println!("in shutdown callback");
 
     // DON'T shutdown corosync - we're just testing
-    match cfg::reply_to_shutdown(*handle, cfg::ShutdownReply::No) {
-	Ok(_) => {},
-	Err(e) => {
-	    println!("Error in CFG replyto_shutdown: {}", e);
-	}
+    if let Err(e) = cfg::reply_to_shutdown(*handle, cfg::ShutdownReply::No) {
+	println!("Error in CFG replyto_shutdown: {}", e);
     }
 }
 
@@ -89,45 +85,37 @@ fn main()
     // node status for the local node looks odd (cos it's the loopback connection), so
     // we try for a node ID one less or more than us just to get output that looks
     // sensible to the user.
-    match local_nodeid {
-	Some(our_nodeid) => {
-	    let us_plus1 = NodeId::from(u32::from(our_nodeid)+1);
-	    let us_less1 = NodeId::from(u32::from(our_nodeid)-1);
-	    let mut res = cfg::node_status_get(handle, us_plus1, cfg::NodeStatusVersion::V1);
-	    match res {
-		Ok(_) => {},
-		Err(e) => {
-		    println!("Error from node_status_get on nodeid {}: {}", us_plus1, e);
-		    res = cfg::node_status_get(handle, us_less1, cfg::NodeStatusVersion::V1);
-		}
-	    };
-	    match res {
-		Ok(ns) => {
-		    println!("Node Status for nodeid {}", ns.nodeid);
-		    println!("   reachable: {}", ns.reachable);
-		    println!("   remote: {}", ns.remote);
-		    println!("   onwire_min: {}", ns.onwire_min);
-		    println!("   onwire_max: {}", ns.onwire_max);
-		    println!("   onwire_ver: {}", ns.onwire_ver);
-		    let mut ls_num = 0;
-		    for ls in ns.link_status {
-			if ls.enabled {
-			    println!("   Link {}", ls_num);
-			    println!("      connected: {}", ls.connected);
-			    println!("      mtu: {}", ls.mtu);
-			    println!("      src: {}", ls.src_ipaddr);
-			    println!("      dst: {}", ls.dst_ipaddr);
-			}
-			ls_num += 1;
+    if let Some(our_nodeid) = local_nodeid {
+	let us_plus1 = NodeId::from(u32::from(our_nodeid)+1);
+	let us_less1 = NodeId::from(u32::from(our_nodeid)-1);
+	let mut res = cfg::node_status_get(handle, us_plus1, cfg::NodeStatusVersion::V1);
+	if let Err(e) = res {
+	    println!("Error from node_status_get on nodeid {}: {}", us_plus1, e);
+	    res = cfg::node_status_get(handle, us_less1, cfg::NodeStatusVersion::V1);
+	};
+	match res {
+	    Ok(ns) => {
+		println!("Node Status for nodeid {}", ns.nodeid);
+		println!("   reachable: {}", ns.reachable);
+		println!("   remote: {}", ns.remote);
+		println!("   onwire_min: {}", ns.onwire_min);
+		println!("   onwire_max: {}", ns.onwire_max);
+		println!("   onwire_ver: {}", ns.onwire_ver);
+		for (ls_num, ls) in ns.link_status.iter().enumerate() {
+		    if ls.enabled {
+			println!("   Link {}", ls_num);
+			println!("      connected: {}", ls.connected);
+			println!("      mtu: {}", ls.mtu);
+			println!("      src: {}", ls.src_ipaddr);
+			println!("      dst: {}", ls.dst_ipaddr);
 		    }
 		}
-		Err(e) => {
-		    println!("Error in CFG node_status get: {} (tried nodeids {} & {})", e,
-			     us_plus1, us_less1);
-		}
 	    }
-	},
-	None => {}
+	    Err(e) => {
+		println!("Error in CFG node_status get: {} (tried nodeids {} & {})", e,
+			 us_plus1, us_less1);
+	    }
+	}
     }
 
     // This should not shutdown corosync because the callback on handle2 will refuse it.
@@ -144,9 +132,8 @@ fn main()
 
     // Wait for events
     loop {
-	match cfg::dispatch(handle, corosync::DispatchFlags::One) {
-	    Ok(_) => {}
-	    Err(_) => break,
+	if cfg::dispatch(handle, corosync::DispatchFlags::One).is_err() {
+	    break;
 	}
     }
     println!("ERROR: Corosync quit");

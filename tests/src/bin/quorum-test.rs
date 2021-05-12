@@ -41,7 +41,7 @@ fn main() {
     );
 
     let handle =
-	match quorum::initialize(&md, 99 as u64) {
+	match quorum::initialize(&md, 99_u64) {
 	    Ok((h, t)) => {
 		println!("Quorum initialized; type = {}", t as u32);
 		h
@@ -54,12 +54,9 @@ fn main() {
 
     // Test context APIs
     let set_context: u64=0xabcdbeefcafe;
-    match quorum::context_set(handle, set_context) {
-	Ok(_) => {},
-	Err(e) => {
-	    println!("Error in QUORUM context_set: {}", e);
-	    return;
-	}
+    if let Err(e) = quorum::context_set(handle, set_context) {
+	println!("Error in QUORUM context_set: {}", e);
+	return;
     }
 
     // NOTE This will fail on 32 bit systems because void* is not u64
@@ -75,19 +72,15 @@ fn main() {
     }
 
 
-    match quorum::trackstart(handle, corosync::TrackFlags::Changes) {
-	Ok(_) => {},
-	Err(e) => {
-	    println!("Error in QUORUM trackstart: {}", e);
-	    return;
-	}
+    if let Err(e) = quorum::trackstart(handle, corosync::TrackFlags::Changes) {
+	println!("Error in QUORUM trackstart: {}", e);
+	return;
     }
 
     // Wait for events
     loop {
-	match quorum::dispatch(handle, corosync::DispatchFlags::One) {
-	    Ok(_) => {}
-	    Err(_) => break,
+	if quorum::dispatch(handle, corosync::DispatchFlags::One).is_err() {
+	    break;
 	}
     }
     println!("ERROR: Corosync quit");

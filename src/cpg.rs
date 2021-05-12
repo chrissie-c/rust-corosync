@@ -165,13 +165,13 @@ lazy_static! {
 }
 
 // Convert a Rust String into a cpg_name struct for libcpg
-fn string_to_cpg_name(group: &String) -> Result<ffi::cpg_name>
+fn string_to_cpg_name(group: &str) -> Result<ffi::cpg_name>
 {
     if group.len() > CPG_NAMELEN_MAX-1 {
 	return Err(CsError::CsErrInvalidParam);
     }
 
-    let c_name = match CString::new(group.as_str()) {
+    let c_name = match CString::new(group) {
 	Ok(n) => n,
 	Err(_) => return Err(CsError::CsErrLibrary),
     };
@@ -210,33 +210,28 @@ extern "C" fn rust_deliver_fn(
     msg: *mut ::std::os::raw::c_void,
     msg_len: usize)
 {
-    match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) =>  {
-	    // Convert group_name into a Rust str.
-	    let r_group_name = unsafe {
-		CStr::from_ptr(&(*group_name).value[0]).to_string_lossy().into_owned()
-	    };
+    if let Some(h) =  HANDLE_HASH.lock().unwrap().get(&handle) {
+	// Convert group_name into a Rust str.
+	let r_group_name = unsafe {
+	    CStr::from_ptr(&(*group_name).value[0]).to_string_lossy().into_owned()
+	};
 
-	    let data : &[u8] = unsafe {
-		std::slice::from_raw_parts(msg as *const u8, msg_len)
-	    };
+	let data : &[u8] = unsafe {
+	    std::slice::from_raw_parts(msg as *const u8, msg_len)
+	};
 
-	    match h.model_data {
-		ModelData::ModelV1(md) =>
-		    match md.deliver_fn {
-			Some(cb) =>
-			    (cb)(h,
-				 r_group_name.to_string(),
-				 NodeId::from(nodeid),
-				 pid,
-				 data,
-				 msg_len),
-			None => {}
-		    }
-		_ => {}
-	    }
+	match h.model_data {
+	    ModelData::ModelV1(md) =>
+		if let Some(cb) = md.deliver_fn {
+		    (cb)(h,
+			 r_group_name,
+			 NodeId::from(nodeid),
+			 pid,
+			 data,
+			 msg_len);
+		}
+	    _ => {}
 	}
-	None => {}
     }
 }
 
@@ -250,31 +245,26 @@ extern "C" fn rust_confchg_fn(handle: ffi::cpg_handle_t,
 			      joined_list: *const ffi::cpg_address,
 			      joined_list_entries: usize)
 {
-    match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) =>  {
-	    let r_group_name = unsafe {
-		CStr::from_ptr(&(*group_name).value[0]).to_string_lossy().into_owned()
-	    };
-	    let r_member_list = cpg_array_to_vec(member_list, member_list_entries);
-	    let r_left_list = cpg_array_to_vec(left_list, left_list_entries);
-	    let r_joined_list = cpg_array_to_vec(joined_list, joined_list_entries);
+    if let Some(h) = HANDLE_HASH.lock().unwrap().get(&handle) {
+	let r_group_name = unsafe {
+	    CStr::from_ptr(&(*group_name).value[0]).to_string_lossy().into_owned()
+	};
+	let r_member_list = cpg_array_to_vec(member_list, member_list_entries);
+	let r_left_list = cpg_array_to_vec(left_list, left_list_entries);
+	let r_joined_list = cpg_array_to_vec(joined_list, joined_list_entries);
 
-	    match h.model_data {
-		ModelData::ModelV1(md) => {
-		    match md.confchg_fn {
-			Some(cb) =>
-			    (cb)(h,
-				 &r_group_name.to_string(),
-				 r_member_list,
-				 r_left_list,
-				 r_joined_list),
-			None => {}
-		    }
+	match h.model_data {
+	    ModelData::ModelV1(md) => {
+		if let Some(cb) = md.confchg_fn {
+		    (cb)(h,
+			 &r_group_name,
+			 r_member_list,
+			 r_left_list,
+			 r_joined_list);
 		}
-		_ => {}
 	    }
+	    _ => {}
 	}
-	None => {}
     }
 }
 
@@ -284,29 +274,24 @@ extern "C" fn rust_totem_confchg_fn(handle: ffi::cpg_handle_t,
 				    member_list_entries: u32,
 				    member_list: *const u32)
 {
-    match HANDLE_HASH.lock().unwrap().get(&handle) {
-	Some(h) =>  {
-	    let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
-				   seq: ring_id.seq};
-	    let mut r_member_list = Vec::<NodeId>::new();
-	    let temp_members: &[u32] = unsafe { slice::from_raw_parts(member_list, member_list_entries as usize) };
-	    for i in 0..member_list_entries as usize {
-		r_member_list.push(NodeId::from(temp_members[i]));
-	    }
-
-	    match h.model_data {
-		ModelData::ModelV1(md) =>
-		    match md.totem_confchg_fn {
-			Some(cb) =>
-			    (cb)(h,
-				 r_ring_id,
-				 r_member_list),
-			None => {}
-		    }
-		_ => {}
-	    }
+    if let Some(h) = HANDLE_HASH.lock().unwrap().get(&handle) {
+	let r_ring_id = RingId{nodeid: NodeId::from(ring_id.nodeid),
+			       seq: ring_id.seq};
+	let mut r_member_list = Vec::<NodeId>::new();
+	let temp_members: &[u32] = unsafe { slice::from_raw_parts(member_list, member_list_entries as usize) };
+	for i in 0..member_list_entries as usize {
+	    r_member_list.push(NodeId::from(temp_members[i]));
 	}
-	None => {}
+
+	match h.model_data {
+	    ModelData::ModelV1(md) =>
+		if let Some(cb) = md.totem_confchg_fn {
+		    (cb)(h,
+			 r_ring_id,
+			 r_member_list);
+		}
+	    _ => {}
+	}
     }
 }
 
@@ -393,7 +378,7 @@ pub fn dispatch(handle: Handle, flags: DispatchFlags) -> Result<()>
 }
 
 /// Joins a CPG group for sending and receiving messages
-pub fn join(handle: Handle, group: &String) -> Result<()>
+pub fn join(handle: Handle, group: &str) -> Result<()>
 {
     let res =
 	unsafe {
@@ -409,7 +394,7 @@ pub fn join(handle: Handle, group: &String) -> Result<()>
 
 /// Leave the currently joined CPG group, another group can now be joined on
 /// the same [Handle] or [finalize] can be called to finish using CPG
-pub fn leave(handle: Handle, group: &String) -> Result<()>
+pub fn leave(handle: Handle, group: &str) -> Result<()>
 {
     let res =
 	unsafe {
@@ -439,7 +424,7 @@ pub fn local_get(handle: Handle) -> Result<NodeId>
 }
 
 /// Get a list of members of a CPG group as a vector of [Address] structs
-pub fn membership_get(handle: Handle, group: &String) -> Result<Vec::<Address>>
+pub fn membership_get(handle: Handle, group: &str) -> Result<Vec::<Address>>
 {
     let mut member_list_entries: i32 = 0;
     let member_list = [ffi::cpg_address{nodeid:0, pid:0, reason:0}; CPG_MEMBERS_MAX];
@@ -595,7 +580,7 @@ impl Iterator for CpgIntoIter {
     fn next(&mut self) -> Option<CpgIter> {
 	let mut c_iter_description = ffi::cpg_iteration_description_t {
 	    nodeid: 0, pid: 0,
-	    group: ffi::cpg_name{length: 0 as u32, value: [0; CPG_NAMELEN_MAX]}};
+	    group: ffi::cpg_name{length: 0_u32, value: [0; CPG_NAMELEN_MAX]}};
 	let res = unsafe {
 	    ffi::cpg_iteration_next(self.iter_handle, &mut c_iter_description)
 	};
@@ -623,7 +608,7 @@ impl Iterator for CpgIntoIter {
 
 impl CpgIterStart {
     /// Create a new [CpgIterStart] object for iterating over a list of active CPG groups
-    pub fn new(cpg_handle: Handle, group: &String, iter_type: CpgIterType) -> Result<CpgIterStart>
+    pub fn new(cpg_handle: Handle, group: &str, iter_type: CpgIterType) -> Result<CpgIterStart>
     {
 	let mut iter_handle : u64 = 0;
 	let res =

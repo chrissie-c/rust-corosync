@@ -292,19 +292,19 @@ impl fmt::Display for Data {
 }
 
 const CMAP_KEYNAME_MAXLENGTH : usize = 255;
-fn string_to_cstring_validated(key: &String, maxlen: usize) -> Result<CString>
+fn string_to_cstring_validated(key: &str, maxlen: usize) -> Result<CString>
 {
     if maxlen > 0 && key.chars().count() >= maxlen {
 	return Err(CsError::CsErrInvalidParam);
     }
 
-    match CString::new(key.as_str()) {
+    match CString::new(key) {
 	Ok(n) => Ok(n),
 	Err(_) => Err(CsError::CsErrLibrary),
     }
 }
 
-fn set_value(handle: Handle, key_name: &String, datatype: DataType, value: *mut c_void, length: usize) -> Result<()>
+fn set_value(handle: Handle, key_name: &str, datatype: DataType, value: *mut c_void, length: usize) -> Result<()>
 {
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let res = unsafe {
@@ -321,7 +321,7 @@ fn set_value(handle: Handle, key_name: &String, datatype: DataType, value: *mut 
 // I wanted to make a generic for these but the Rust functions
 // for getting a type in a generic function require the value
 // to be 'static, sorry
-pub fn set_u8(handle: Handle, key_name: &String, value: u8) -> Result<()>
+pub fn set_u8(handle: Handle, key_name: &str, value: u8) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -329,7 +329,7 @@ pub fn set_u8(handle: Handle, key_name: &String, value: u8) -> Result<()>
 }
 
 /// Sets an i8 value into cmap
-pub fn set_i8(handle: Handle, key_name: &String, value: i8) -> Result<()>
+pub fn set_i8(handle: Handle, key_name: &str, value: i8) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -337,7 +337,7 @@ pub fn set_i8(handle: Handle, key_name: &String, value: i8) -> Result<()>
 }
 
 /// Sets a u16 value into cmap
-pub fn set_u16(handle: Handle, key_name: &String, value: u16) -> Result<()>
+pub fn set_u16(handle: Handle, key_name: &str, value: u16) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -345,7 +345,7 @@ pub fn set_u16(handle: Handle, key_name: &String, value: u16) -> Result<()>
 }
 
 /// Sets an i16 value into cmap
-pub fn set_i16(handle: Handle, key_name: &String, value: i16) -> Result<()>
+pub fn set_i16(handle: Handle, key_name: &str, value: i16) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -353,7 +353,7 @@ pub fn set_i16(handle: Handle, key_name: &String, value: i16) -> Result<()>
 }
 
 /// Sets a u32 value into cmap
-pub fn set_u32(handle: Handle, key_name: &String, value: u32) -> Result<()>
+pub fn set_u32(handle: Handle, key_name: &str, value: u32) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -361,7 +361,7 @@ pub fn set_u32(handle: Handle, key_name: &String, value: u32) -> Result<()>
 }
 
 /// Sets an i32 value into cmap
-pub fn set_i132(handle: Handle, key_name: &String, value: i32) -> Result<()>
+pub fn set_i132(handle: Handle, key_name: &str, value: i32) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -369,7 +369,7 @@ pub fn set_i132(handle: Handle, key_name: &String, value: i32) -> Result<()>
 }
 
 /// Sets a u64 value into cmap
-pub fn set_u64(handle: Handle, key_name: &String, value: u64) -> Result<()>
+pub fn set_u64(handle: Handle, key_name: &str, value: u64) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -377,7 +377,7 @@ pub fn set_u64(handle: Handle, key_name: &String, value: u64) -> Result<()>
 }
 
 /// Sets an i64 value into cmap
-pub fn set_i164(handle: Handle, key_name: &String, value: i64) -> Result<()>
+pub fn set_i164(handle: Handle, key_name: &str, value: i64) -> Result<()>
 {
     let mut tmp = value;
     let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
@@ -385,20 +385,20 @@ pub fn set_i164(handle: Handle, key_name: &String, value: i64) -> Result<()>
 }
 
 /// Sets a string value into cmap
-pub fn set_string(handle: Handle, key_name: &String, value: &String) -> Result<()>
+pub fn set_string(handle: Handle, key_name: &str, value: &str) -> Result<()>
 {
     let v_string =  string_to_cstring_validated(&value, 0)?;
     set_value(handle, key_name, DataType::String, v_string.as_ptr() as *mut c_void, value.chars().count())
 }
 
 /// Sets a binary value into cmap
-pub fn set_binary(handle: Handle, key_name: &String, value: &[u8]) -> Result<()>
+pub fn set_binary(handle: Handle, key_name: &str, value: &[u8]) -> Result<()>
 {
     set_value(handle, key_name, DataType::Binary, value.as_ptr() as *mut c_void, value.len())
 }
 
 /// Sets a [Data] type into cmap
-pub fn set(handle: Handle, key_name: &String, data: &Data) ->Result<()>
+pub fn set(handle: Handle, key_name: &str, data: &Data) ->Result<()>
 {
     let (datatype, datalen, c_value) = match data {
 	Data::Int8(v) => {
@@ -462,7 +462,7 @@ pub fn set(handle: Handle, key_name: &String, data: &Data) ->Result<()>
 	},
 	Data::Unknown => return Err(CsError::CsErrInvalidParam)
     };
-    
+
     set_value(handle, key_name, datatype, c_value, datalen)
 }
 
@@ -528,13 +528,13 @@ fn c_to_data(value_size: usize, c_key_type: u32, c_value: *const u8) -> Result<D
 		ints.resize(value_size, 0u8);
 		copy_nonoverlapping(c_value as *mut u8, ints.as_mut_ptr() as *mut u8, value_size);
 		// -1 here so CString doesn't see the NUL
-		let cs = match CString::new(&ints[0..value_size-1 as usize]) {
+		let cs = match CString::new(&ints[0..value_size - 1_usize]) {
 		    Ok(c1) => c1,
 		    Err(_) => return Err(CsError::CsErrLibrary),
 		};
 		match cs.into_string() {
 		    Ok(s) => Ok(Data::String(s)),
-		    Err(_) => return Err(CsError::CsErrLibrary),
+		    Err(_) => Err(CsError::CsErrLibrary),
 		}
 	    }
 	    DataType::Binary => {
@@ -553,7 +553,7 @@ fn c_to_data(value_size: usize, c_key_type: u32, c_value: *const u8) -> Result<D
 const INITIAL_SIZE : usize = 256;
 
 /// Get a value from cmap, returned as a [Data] struct, so could be anything
-pub fn get(handle: Handle, key_name: &String) -> Result<Data>
+pub fn get(handle: Handle, key_name: &str) -> Result<Data>
 {
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let mut value_size : usize = 16;
@@ -579,15 +579,15 @@ pub fn get(handle: Handle, key_name: &String) -> Result<Data>
 	    }
 
 	    // Convert to Rust type and return as a Data enum
-	    return c_to_data(value_size, c_key_type, c_value.as_ptr());
+	    c_to_data(value_size, c_key_type, c_value.as_ptr())
 	} else {
-	    return Err(CsError::from_c(res));
+	    Err(CsError::from_c(res))
 	}
     }
 }
 
 /// increment the value in a cmap key (must be a numeric type)
-pub fn inc(handle: Handle, key_name: &String) -> Result<()>
+pub fn inc(handle: Handle, key_name: &str) -> Result<()>
 {
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let res = unsafe {
@@ -601,7 +601,7 @@ pub fn inc(handle: Handle, key_name: &String) -> Result<()>
 }
 
 /// decrement the value in a cmap key (must be a numeric type)
-pub fn dec(handle: Handle, key_name: &String) -> Result<()>
+pub fn dec(handle: Handle, key_name: &str) -> Result<()>
 {
     let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let res = unsafe {
@@ -624,37 +624,29 @@ extern "C" fn rust_notify_fn(cmap_handle: ffi::cmap_handle_t,
 			     user_data: *mut ::std::os::raw::c_void)
 {
     // If cmap_handle doesn't match then throw away the callback.
-    match HANDLE_HASH.lock().unwrap().get(&cmap_handle) {
-	Some(r_cmap_handle) => {
-	    match TRACKHANDLE_HASH.lock().unwrap().get(&cmap_track_handle) {
-		Some(h) =>  {
-		    let r_keyname = match string_from_bytes(key_name, CMAP_KEYNAME_MAXLENGTH) {
-			Ok(s) => s,
-			Err(_) => return,
-		    };
+    if let Some(r_cmap_handle) = HANDLE_HASH.lock().unwrap().get(&cmap_handle) {
+	if let Some(h) = TRACKHANDLE_HASH.lock().unwrap().get(&cmap_track_handle) {
+	    let r_keyname = match string_from_bytes(key_name, CMAP_KEYNAME_MAXLENGTH) {
+		Ok(s) => s,
+		Err(_) => return,
+	    };
 
-		    let r_old = match c_to_data(old_value.len, old_value.type_, old_value.data as *const u8) {
-			Ok(v) => v,
-			Err(_) => return,
-		    };
-		    let r_new = match c_to_data(new_value.len, new_value.type_, new_value.data as *const u8) {
-			Ok(v) => v,
-			Err(_) => return,
-		    };
+	    let r_old = match c_to_data(old_value.len, old_value.type_, old_value.data as *const u8) {
+		Ok(v) => v,
+		Err(_) => return,
+	    };
+	    let r_new = match c_to_data(new_value.len, new_value.type_, new_value.data as *const u8) {
+		Ok(v) => v,
+		Err(_) => return,
+	    };
 
-		    match h.notify_callback.notify_fn {
-			Some(cb) =>
-			    (cb)(r_cmap_handle, h, TrackType{bits: event},
-				 &r_keyname,
-				 &r_old, &r_new,
-				 user_data as u64),
-			None => {}
-		    }
-		}
-		None => {}
+	    if let Some(cb) = h.notify_callback.notify_fn {
+		(cb)(r_cmap_handle, h, TrackType{bits: event},
+		     &r_keyname,
+		     &r_old, &r_new,
+		     user_data as u64);
 	    }
 	}
-	None => {}
     }
 }
 
@@ -665,7 +657,7 @@ pub struct NotifyCallback
     pub notify_fn: Option<fn(handle: &Handle,
 			     track_handle: &TrackHandle,
 			     event: TrackType,
-			     key_name: &String,
+			     key_name: &str,
 			     new_value: &Data,
 			     old_value: &Data,
 			     user_data: u64)>,
@@ -673,7 +665,7 @@ pub struct NotifyCallback
 
 /// Track changes in cmap values, multiple [TrackHandle]s per [Handle] are allowed
 pub fn track_add(handle: Handle,
-		 key_name: &String,
+		 key_name: &str,
 		 track_type: TrackType,
 		 notify_callback: &NotifyCallback,
 		 user_data: u64) -> Result<TrackHandle>
@@ -785,7 +777,7 @@ impl Iterator for CmapIntoIter {
 
 impl CmapIterStart {
     /// Create a new [CmapIterStart] object for iterating over a list of cmap keys
-    pub fn new(cmap_handle: Handle, prefix: &String) -> Result<CmapIterStart>
+    pub fn new(cmap_handle: Handle, prefix: &str) -> Result<CmapIterStart>
     {
 	let mut iter_handle : u64 = 0;
 	let res =
