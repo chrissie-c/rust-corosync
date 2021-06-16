@@ -263,20 +263,17 @@ fn string_from_bytes(bytes: *const ::std::os::raw::c_char, max_length: usize) ->
     let mut newbytes = Vec::<u8>::new();
     newbytes.resize(max_length, 0u8);
 
-    unsafe {
-	// We need to fully copy it, not shallow copy it.
-	// Messy casting on both parts of the copy here to get it to work on both signed
-	// and unsigned char machines
-	copy_nonoverlapping(bytes as *mut i8, newbytes.as_mut_ptr() as *mut i8, max_length);
-    }
-
     // Get length of the string in old-fashioned style
     let mut length: usize = 0;
-    for (count, i) in newbytes.iter().enumerate() {
-	if *i == 0 && length == 0 {
+    let mut count = 0;
+    let mut tmpbytes = bytes;
+    while count < max_length || length == 0 {
+	if unsafe {*tmpbytes} == 0 && length == 0 {
 	    length = count;
 	    break;
 	}
+	count += 1;
+	tmpbytes = unsafe { tmpbytes.offset(1) }
     }
 
     // Cope with an empty string
@@ -284,10 +281,20 @@ fn string_from_bytes(bytes: *const ::std::os::raw::c_char, max_length: usize) ->
 	return Ok(String::new());
     }
 
+    unsafe {
+	// We need to fully copy it, not shallow copy it.
+	// Messy casting on both parts of the copy here to get it to work on both signed
+	// and unsigned char machines
+	copy_nonoverlapping(bytes as *mut i8, newbytes.as_mut_ptr() as *mut i8, length);
+    }
+
+
     let cs = match CString::new(&newbytes[0..length as usize]) {
 	Ok(c1) => c1,
 	Err(_) => return Err(CsError::CsErrRustString),
     };
+
+    // This is just to convert the error type
     match cs.into_string() {
 	Ok(s) => Ok(s),
 	Err(_) => Err(CsError::CsErrRustString),
