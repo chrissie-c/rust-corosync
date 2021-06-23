@@ -3,7 +3,7 @@
 //! and iterators.
 //!
 //! Corosync is a low-level provider of cluster services for high-availability clusters,
-//! for more information about corosync see https://corosync.github.io/corosync/
+//! for more information about corosync see <https://corosync.github.io/corosync/>
 //!
 //! No more information about corosync itself will be provided here, it is expected that if
 //! you feel you need access to the Corosync API calls, you know what they do :)
