@@ -306,7 +306,7 @@ fn string_to_cstring_validated(key: &str, maxlen: usize) -> Result<CString>
 
 fn set_value(handle: Handle, key_name: &str, datatype: DataType, value: *mut c_void, length: usize) -> Result<()>
 {
-    let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
+    let csname = string_to_cstring_validated(key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let res = unsafe {
 	ffi::cmap_set(handle.cmap_handle, csname.as_ptr(), value, length, datatype as u32)
     };
@@ -387,7 +387,7 @@ pub fn set_i164(handle: Handle, key_name: &str, value: i64) -> Result<()>
 /// Sets a string value into cmap
 pub fn set_string(handle: Handle, key_name: &str, value: &str) -> Result<()>
 {
-    let v_string =  string_to_cstring_validated(&value, 0)?;
+    let v_string =  string_to_cstring_validated(value, 0)?;
     set_value(handle, key_name, DataType::String, v_string.as_ptr() as *mut c_void, value.chars().count())
 }
 
@@ -555,7 +555,7 @@ const INITIAL_SIZE : usize = 256;
 /// Get a value from cmap, returned as a [Data] struct, so could be anything
 pub fn get(handle: Handle, key_name: &str) -> Result<Data>
 {
-    let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
+    let csname = string_to_cstring_validated(key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let mut value_size : usize = 16;
     let mut c_key_type : u32 = 0;
     let mut c_value = Vec::<u8>::new();
@@ -589,7 +589,7 @@ pub fn get(handle: Handle, key_name: &str) -> Result<Data>
 /// increment the value in a cmap key (must be a numeric type)
 pub fn inc(handle: Handle, key_name: &str) -> Result<()>
 {
-    let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
+    let csname = string_to_cstring_validated(key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let res = unsafe {
 	ffi::cmap_inc(handle.cmap_handle, csname.as_ptr())
     };
@@ -603,7 +603,7 @@ pub fn inc(handle: Handle, key_name: &str) -> Result<()>
 /// decrement the value in a cmap key (must be a numeric type)
 pub fn dec(handle: Handle, key_name: &str) -> Result<()>
 {
-    let csname = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
+    let csname = string_to_cstring_validated(key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let res = unsafe {
 	ffi::cmap_dec(handle.cmap_handle, csname.as_ptr())
     };
@@ -670,7 +670,7 @@ pub fn track_add(handle: Handle,
 		 notify_callback: &NotifyCallback,
 		 user_data: u64) -> Result<TrackHandle>
 {
-    let c_name = string_to_cstring_validated(&key_name, CMAP_KEYNAME_MAXLENGTH)?;
+    let c_name = string_to_cstring_validated(key_name, CMAP_KEYNAME_MAXLENGTH)?;
     let mut c_trackhandle = 0u64;
     let res =
 	unsafe {
@@ -782,7 +782,7 @@ impl CmapIterStart {
 	let mut iter_handle : u64 = 0;
 	let res =
 	    unsafe {
-		let c_prefix = string_to_cstring_validated(&prefix, CMAP_KEYNAME_MAXLENGTH)?;
+		let c_prefix = string_to_cstring_validated(prefix, CMAP_KEYNAME_MAXLENGTH)?;
 		ffi::cmap_iter_init(cmap_handle.cmap_handle, c_prefix.as_ptr(), &mut iter_handle)
 	    };
 	if res == ffi::CS_OK {
