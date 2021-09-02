@@ -18,14 +18,7 @@ use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
 use std::ptr::copy_nonoverlapping;
 use std::fmt;
-
-// NOTE: size_of and TypeId look perfect for this
-// to make a generic set() function, but requre that the
-// parameter too all functions is 'static,
-// which we can't work with.
-// Leaving this comment here in case that changes
-//use core::mem::size_of;
-//use std::any::TypeId;
+use std::any::type_name;
 
 use crate::{CsError, DispatchFlags, Result};
 use crate::string_from_bytes;
@@ -207,7 +200,7 @@ pub fn context_set(handle: Handle, context: u64) -> Result<()>
 
 /// The type of data returned from [get] or in a
 /// tracker callback or iterator, part of the [Data] struct
-#[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u32)]
 pub enum DataType {
     Int8 = ffi::CMAP_VALUETYPE_INT8 as u32,
@@ -317,10 +310,58 @@ fn set_value(handle: Handle, key_name: &str, datatype: DataType, value: *mut c_v
     }
 }
 
-/// Sets a u8 value into cmap
-// I wanted to make a generic for these but the Rust functions
-// for getting a type in a generic function require the value
-// to be 'static, sorry
+// Returns type and size
+fn generic_to_cmap<T>(_value: T) -> (DataType, usize)
+{
+    match type_name::<T>()
+    {
+	"u8" => (DataType::UInt8, 1),
+	"i8" => (DataType::Int8, 1),
+	"u16" => (DataType::UInt16, 2),
+	"i16" => (DataType::Int16, 2),
+	"u32" => (DataType::UInt32, 4),
+	"i32" => (DataType::Int32, 4),
+	"u64" => (DataType::UInt64, 4),
+	"f32" => (DataType::Float, 4),
+	"f64" => (DataType::Double, 8),
+	"&str" => (DataType::String, 0),
+	// Binary not currently supported here
+	_ => (DataType::Unknown, 0),
+    }
+}
+
+fn is_numeric_type(dtype: DataType) -> bool
+{
+    match dtype {
+	DataType::UInt8 |
+	DataType::Int8 |
+	DataType::UInt16 |
+	DataType::Int16 |
+	DataType::UInt32 |
+	DataType::Int32 |
+	DataType::UInt64 |
+	DataType::Int64 |
+	DataType::Float |
+	DataType::Double => true,
+	_ => false
+    }
+}
+
+/// Function to set a generic numeric value
+/// This doesn't work for strings or binaries
+pub fn set_number<T: Copy>(handle: Handle, key_name: &str, value: T) -> Result<()>
+{
+    let (c_type, c_size) = generic_to_cmap(value);
+
+    if is_numeric_type(c_type) {
+	let mut tmp = value;
+	let c_value: *mut c_void = &mut tmp as *mut _ as *mut c_void;
+	set_value(handle, key_name, c_type, c_value as *mut c_void, c_size)
+    } else {
+	Err(CsError::CsErrNotSupported)
+    }
+}
+
 pub fn set_u8(handle: Handle, key_name: &str, value: u8) -> Result<()>
 {
     let mut tmp = value;
