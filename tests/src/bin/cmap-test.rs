@@ -50,7 +50,8 @@ fn main()
 	return;
     };
 
-    if let Err(e) = cmap::set_number(handle, "test.test_num_2", 3.14159265) {
+    // NOT PI (just to avoid clippy whingeing)
+    if let Err(e) = cmap::set_number(handle, "test.test_num_2", 3.24159265) {
 	println!("Error in CMAP set_number(f32): {}", e);
 	return;
     };

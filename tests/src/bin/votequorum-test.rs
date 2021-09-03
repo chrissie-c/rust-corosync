@@ -72,7 +72,7 @@ fn main() {
 
     const QDEVICE_NAME : &str = "RustQdevice";
 
-    if let Err(e) = votequorum::qdevice_register(handle, &QDEVICE_NAME.to_string()) {
+    if let Err(e) = votequorum::qdevice_register(handle, QDEVICE_NAME) {
 	println!("Error in VOTEQUORUM qdevice_register: {}", e);
     }
 
@@ -98,7 +98,7 @@ fn main() {
 	}
     }
 
-    if let Err(e) = votequorum::qdevice_unregister(handle, &QDEVICE_NAME.to_string()) {
+    if let Err(e) = votequorum::qdevice_unregister(handle, QDEVICE_NAME) {
 	println!("Error in VOTEQUORUM qdevice_unregister: {}", e);
     }
 

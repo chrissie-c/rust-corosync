@@ -28,8 +28,8 @@
 //!         }
 //!     };
 //!
-//!     // Set a value
-//!     match cmap::set_u32(handle, &"test.test_uint32".to_string(), 456)
+//!     // Set a numeric value (this is a generic fn)
+//!     match cmap::set_number(handle, "test.test_uint32", 456)
 //!     {
 //!         Ok(_) => {}
 //!         Err(e) => {
@@ -39,7 +39,7 @@
 //!     };
 //!
 //!     // Get a value - this will be a Data struct
-//!     match cmap::get(handle, &"test.test_uint32".to_string())
+//!     match cmap::get(handle, "test.test_uint32")
 //!     {
 //!         Ok(v) => {
 //!             println!("GOT value {}", v);
@@ -51,7 +51,7 @@
 //!     };
 //!
 //!     // Use an iterator
-//!     match cmap::CmapIterStart::new(handle, &"totem.".to_string()) {
+//!     match cmap::CmapIterStart::new(handle, "totem.") {
 //!         Ok(cmap_iter) => {
 //!             for i in cmap_iter {
 //!                 println!("ITER: {:?}", i);
