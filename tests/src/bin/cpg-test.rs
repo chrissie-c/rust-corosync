@@ -70,7 +70,7 @@ fn main() {
 	};
 
 
-    if let Err(e) = cpg::join(handle, &"TEST".to_owned()) {
+    if let Err(e) = cpg::join(handle, "TEST") {
 	println!("Error in CPG join: {}", e);
 	return;
     }
@@ -85,7 +85,7 @@ fn main() {
     }
 
     // Test membership_get()
-    match cpg::membership_get(handle, &"TEST".to_owned()) {
+    match cpg::membership_get(handle, "TEST") {
 	Ok(m) => {
 	    println!("  members: {:?}", m);
 	    println!();
@@ -115,7 +115,7 @@ fn main() {
     }
 
     // Test iterator
-    match cpg::CpgIterStart::new(handle, &"".to_owned(), cpg::CpgIterType::All) {
+    match cpg::CpgIterStart::new(handle, "", cpg::CpgIterType::All) {
 	Ok(cpg_iter) => {
 	    for i in cpg_iter {
 		println!("ITER: {:?}", i);
