@@ -230,7 +230,7 @@ pub enum TrackFlags {
 }
 
 /// A corosync nodeid
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct NodeId {
     id: u32,
 }
