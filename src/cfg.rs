@@ -59,11 +59,13 @@ pub enum TrackFlags {
 }
 
 /// Version of the [NodeStatus] structure returned from [node_status_get]
+#[derive(Debug, Copy, Clone)]
 pub enum NodeStatusVersion {
     V1,
 }
 
 /// Status of a link inside [NodeStatus] struct
+#[derive(Debug)]
 pub struct LinkStatus {
     pub enabled: bool,
     pub connected: bool,
@@ -75,6 +77,7 @@ pub struct LinkStatus {
 
 /// Structure returned from [node_status_get], shows all the details of a node
 /// that is known to corosync, including all configured links
+#[derive(Debug)]
 pub struct NodeStatus {
     pub version: NodeStatusVersion,
     pub nodeid: NodeId,
