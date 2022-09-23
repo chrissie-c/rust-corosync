@@ -2,7 +2,7 @@
 
 extern crate rust_corosync as corosync;
 use corosync::{quorum, NodeId};
-
+use std::thread::spawn;
 
 fn quorum_fn(_handle: &quorum::Handle,
 	     quorate: bool,
@@ -27,7 +27,15 @@ fn nodelist_fn(_handle: &quorum::Handle,
     println!("  left: {:?}", left_list);
 }
 
-
+fn dispatch_routine(handle: quorum::Handle)
+{
+    // Wait for events
+    loop {
+	if quorum::dispatch(handle, corosync::DispatchFlags::One).is_err() {
+	    break;
+	}
+    }
+}
 
 fn main() {
 
@@ -48,15 +56,20 @@ fn main() {
 	    }
 	    Err(e) => {
 		println!("Error in QUORUM init: {}", e);
-		return;
+		std::process::exit(1);
 	    }
 	};
+
+    let handle_clone = handle.clone();
+    let _dispatch_thread = spawn(move || {
+	dispatch_routine(handle_clone)}
+    );
 
     // Test context APIs
     let set_context: u64=0xabcdbeefcafe;
     if let Err(e) = quorum::context_set(handle, set_context) {
 	println!("Error in QUORUM context_set: {}", e);
-	return;
+	std::process::exit(1);
     }
 
     // NOTE This will fail on 32 bit systems because void* is not u64
@@ -64,24 +77,21 @@ fn main() {
 	Ok(c) => {
 	    if c != set_context {
 		println!("Error: context_get() returned {:x}, context should be {:x}", c, set_context);
+		std::process::exit(2);
 	    }
 	},
 	Err(e) => {
 	    println!("Error in QUORUM context_get: {}", e);
+	    std::process::exit(1);
 	}
     }
 
 
     if let Err(e) = quorum::trackstart(handle, corosync::TrackFlags::Changes) {
 	println!("Error in QUORUM trackstart: {}", e);
-	return;
+	std::process::exit(1);
     }
 
-    // Wait for events
-    loop {
-	if quorum::dispatch(handle, corosync::DispatchFlags::One).is_err() {
-	    break;
-	}
-    }
-    println!("ERROR: Corosync quit");
+    // Let it all finish
+    std::thread::sleep(std::time::Duration::new(5,0));
 }

@@ -2,6 +2,7 @@
 
 extern crate rust_corosync as corosync;
 use corosync::{cmap};
+use std::thread::spawn;
 
 fn track_notify_fn(_handle: &cmap::Handle,
 		   _track_handle: &cmap::TrackHandle,
@@ -17,6 +18,13 @@ fn track_notify_fn(_handle: &cmap::Handle,
     println!("   New value: {}", new_value);
 }
 
+fn dispatch_routine(handle: cmap::Handle) {
+    loop {
+        if cmap::dispatch(handle, corosync::DispatchFlags::One).is_err() {
+            return;
+        }
+    }
+}
 
 fn main()
 {
@@ -28,50 +36,49 @@ fn main()
 	    }
 	    Err(e) => {
 		println!("Error in CMAP (Icmap) init: {}", e);
-		return;
+		std::process::exit(1);
 	    }
 	};
-
 
     // Test some SETs
     if let Err(e) = cmap::set_u32(handle, "test.test_uint32", 456) {
 	println!("Error in CMAP set_u32: {}", e);
-	return;
+	std::process::exit(1);
     };
 
     if let Err(e) = cmap::set_i16(handle, "test.test_int16", -789) {
 	println!("Error in CMAP set_i16: {}", e);
-	return;
+	std::process::exit(1);
     };
 
     if let Err(e) = cmap::set_number(handle, "test.test_num_1", 6809u32) {
 
 	println!("Error in CMAP set_number(u32): {}", e);
-	return;
+	std::process::exit(1);
     };
 
     // NOT PI (just to avoid clippy whingeing)
     if let Err(e) = cmap::set_number(handle, "test.test_num_2", 3.24159265) {
 	println!("Error in CMAP set_number(f32): {}", e);
-	return;
+	std::process::exit(1);
     };
 
     if let Err(e) = cmap::set_string(handle, "test.test_string", "Hello from Rust") {
 	println!("Error in CMAP set_string: {}", e);
-	return;
+	std::process::exit(1);
     };
 
     let test_d = cmap::Data::UInt64(0xdeadbeefbacecafe);
     if let Err(e) = cmap::set(handle, "test.test_data", &test_d) {
 	println!("Error in CMAP set_data: {}", e);
-	return;
+	std::process::exit(1);
     };
 
     //    let test_d2 = cmap::Data::UInt32(6809);
     let test_d2 = cmap::Data::String("Test string in data 12345".to_string());
     if let Err(e) = cmap::set(handle, "test.test_again", &test_d2) {
 	println!("Error in CMAP set_data2: {}", e);
-	return;
+	std::process::exit(1);
     };
 
     // get them back again
@@ -83,7 +90,7 @@ fn main()
 
 	Err(e) => {
 	    println!("Error in CMAP get: {}", e);
-	    return;
+	    std::process::exit(1);
 	}
     };
     match cmap::get(handle, "test.test_int16")
@@ -94,7 +101,7 @@ fn main()
 
 	Err(e) => {
 	    println!("Error in CMAP get: {}", e);
-	    return;
+	    std::process::exit(1);
 	}
     };
 
@@ -106,7 +113,7 @@ fn main()
 
 	Err(e) => {
 	    println!("Error in CMAP get: {}", e);
-	    return;
+	    std::process::exit(1);
 	}
     };
     match cmap::get(handle, "test.test_num_2")
@@ -117,7 +124,7 @@ fn main()
 
 	Err(e) => {
 	    println!("Error in CMAP get: {}", e);
-	    return;
+	    std::process::exit(1);
 	}
     };
     match cmap::get(handle, "test.test_string")
@@ -128,7 +135,7 @@ fn main()
 
 	Err(e) => {
 	    println!("Error in CMAP get: {}", e);
-	    return;
+	    std::process::exit(1);
 	}
     };
 
@@ -143,7 +150,7 @@ fn main()
 
 	Err(e) => {
 	    println!("Error in CMAP get: {}", e);
-	    return;
+	    std::process::exit(1);
 	}
     };
 
@@ -157,13 +164,14 @@ fn main()
 	}
 	Err(e) => {
 	    println!("Error in CMAP iter start: {}", e);
+	    std::process::exit(1);
 	}
     }
 
     // Close this handle
     if let Err(e) = cmap::finalize(handle) {
 	println!("Error in CMAP get: {}", e);
-	return;
+	std::process::exit(1);
     };
 
 
@@ -173,9 +181,14 @@ fn main()
 	    Ok(h) => h,
 	    Err(e) => {
 		println!("Error in CMAP (Stats) init: {}", e);
-		return;
+		std::process::exit(1);
 	    }
 	};
+
+    let handle_clone = handle.clone();
+    let _dispatch_thread = spawn(move || {
+	dispatch_routine(handle_clone)}
+    );
 
     let cb = cmap::NotifyCallback{notify_fn: Some(track_notify_fn)};
     let _track_handle =
@@ -186,20 +199,10 @@ fn main()
 	    Ok(th) => th,
 	    Err(e) => {
 		println!("Error in CMAP track_add {}", e);
-		return;
+		std::process::exit(1);
 	    }
 	};
 
-    // Wait for events
-    let mut event_num = 0;
-    loop {
-	if let Err(e) = cmap::dispatch(handle, corosync::DispatchFlags::One) {
-	    println!("Error from CMAP dispatch: {}", e);
-	}
-	// Just do 5
-	event_num += 1;
-	if event_num > 5 {
-	    break;
-	}
-    }
+    // Let it all finish
+    std::thread::sleep(std::time::Duration::new(10,0));
 }

@@ -5,7 +5,7 @@ use corosync::{cfg, NodeId};
 
 use std::thread::spawn;
 
-fn dispatch_thread(handle: cfg::Handle) {
+fn dispatch_routine(handle: cfg::Handle) {
     loop {
         if cfg::dispatch(handle, corosync::DispatchFlags::One).is_err() {
             return;
@@ -20,6 +20,7 @@ fn shutdown_check_fn(handle: &cfg::Handle, _flags: u32) {
     // DON'T shutdown corosync - we're just testing
     if let Err(e) = cfg::reply_to_shutdown(*handle, cfg::ShutdownReply::No) {
         println!("Error in CFG replyto_shutdown: {}", e);
+	std::process::exit(1);
     }
 }
 
@@ -36,7 +37,7 @@ fn main() {
         }
         Err(e) => {
             println!("Error in CFG init: {}", e);
-            return;
+	    std::process::exit(1);
         }
     };
 
@@ -48,17 +49,22 @@ fn main() {
         }
         Err(e) => {
             println!("Error in CFG init: {}", e);
-            return;
+	    std::process::exit(1);
         }
     };
+
+    let handle_clone = handle.clone();
+    let _dispatch_thread = spawn(move || {
+	dispatch_routine(handle_clone)}
+    );
 
     match cfg::track_start(handle2, cfg::TrackFlags::None) {
         Ok(_) => {
             // Run handle2 dispatch in its own thread
-            spawn(move || dispatch_thread(handle2));
+            spawn(move || dispatch_routine(handle2));
         }
-        Err(e) => {
-            println!("Error in CFG track_start: {}", e);
+        Err(_e) => {
+	    std::process::exit(1);
         }
     };
 
@@ -70,7 +76,7 @@ fn main() {
             }
             Err(e) => {
                 println!("Error in CFG local_get: {}", e);
-                None
+		std::process::exit(1);
             }
         }
     };
@@ -110,6 +116,7 @@ fn main() {
                     "Error in CFG node_status get: {} (tried nodeids {} & {})",
                     e, us_plus1, us_less1
                 );
+		std::process::exit(1);
             }
         }
     }
@@ -122,15 +129,10 @@ fn main() {
         Err(e) => {
             if e != corosync::CsError::CsErrBusy {
                 println!("Error in CFG try_shutdown: {}", e);
+		std::process::exit(1);
             }
         }
     }
-
-    // Wait for events
-    loop {
-        if cfg::dispatch(handle, corosync::DispatchFlags::One).is_err() {
-            break;
-        }
-    }
-    println!("ERROR: Corosync quit");
+    // Let it all finish
+    std::thread::sleep(std::time::Duration::new(1,0));
 }
