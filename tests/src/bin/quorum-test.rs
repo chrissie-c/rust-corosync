@@ -4,94 +4,93 @@ extern crate rust_corosync as corosync;
 use corosync::{quorum, NodeId};
 use std::thread::spawn;
 
-fn quorum_fn(_handle: &quorum::Handle,
-	     quorate: bool,
-	     ring_id: quorum::RingId,
-	     member_list: Vec<NodeId>)
-{
+fn quorum_fn(
+    _handle: &quorum::Handle,
+    quorate: bool,
+    ring_id: quorum::RingId,
+    member_list: Vec<NodeId>,
+) {
     println!("TEST quorum_fn called. quorate = {}", quorate);
     println!("  ring_id: {}/{}", ring_id.nodeid, ring_id.seq);
     println!("  members: {:?}", member_list);
 }
 
-
-fn nodelist_fn(_handle: &quorum::Handle,
-	       ring_id: quorum::RingId,
-	       member_list: Vec<NodeId>,
-	       joined_list: Vec<NodeId>,
-	       left_list: Vec<NodeId>)
-{
-    println!("TEST nodelist_fn called for {}/{}", ring_id.nodeid, ring_id.seq);
+fn nodelist_fn(
+    _handle: &quorum::Handle,
+    ring_id: quorum::RingId,
+    member_list: Vec<NodeId>,
+    joined_list: Vec<NodeId>,
+    left_list: Vec<NodeId>,
+) {
+    println!(
+        "TEST nodelist_fn called for {}/{}",
+        ring_id.nodeid, ring_id.seq
+    );
     println!("  members: {:?}", member_list);
     println!("  joined: {:?}", joined_list);
     println!("  left: {:?}", left_list);
 }
 
-fn dispatch_routine(handle: quorum::Handle)
-{
+fn dispatch_routine(handle: quorum::Handle) {
     // Wait for events
     loop {
-	if quorum::dispatch(handle, corosync::DispatchFlags::One).is_err() {
-	    break;
-	}
+        if quorum::dispatch(handle, corosync::DispatchFlags::One).is_err() {
+            break;
+        }
     }
 }
 
 fn main() {
-
     // Initialise the model data
-    let md = quorum::ModelData::ModelV1 (
-	quorum::Model1Data {
-	    flags: quorum::Model1Flags::None,
-	    quorum_notification_fn: Some(quorum_fn),
-	    nodelist_notification_fn: Some(nodelist_fn),
-	}
-    );
+    let md = quorum::ModelData::ModelV1(quorum::Model1Data {
+        flags: quorum::Model1Flags::None,
+        quorum_notification_fn: Some(quorum_fn),
+        nodelist_notification_fn: Some(nodelist_fn),
+    });
 
-    let handle =
-	match quorum::initialize(&md, 99_u64) {
-	    Ok((h, t)) => {
-		println!("Quorum initialized; type = {}", t as u32);
-		h
-	    }
-	    Err(e) => {
-		println!("Error in QUORUM init: {}", e);
-		std::process::exit(1);
-	    }
-	};
+    let handle = match quorum::initialize(&md, 99_u64) {
+        Ok((h, t)) => {
+            println!("Quorum initialized; type = {}", t as u32);
+            h
+        }
+        Err(e) => {
+            println!("Error in QUORUM init: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     let handle_clone = handle.clone();
-    let _dispatch_thread = spawn(move || {
-	dispatch_routine(handle_clone)}
-    );
+    let _dispatch_thread = spawn(move || dispatch_routine(handle_clone));
 
     // Test context APIs
-    let set_context: u64=0xabcdbeefcafe;
+    let set_context: u64 = 0xabcdbeefcafe;
     if let Err(e) = quorum::context_set(handle, set_context) {
-	println!("Error in QUORUM context_set: {}", e);
-	std::process::exit(1);
+        println!("Error in QUORUM context_set: {}", e);
+        std::process::exit(1);
     }
 
     // NOTE This will fail on 32 bit systems because void* is not u64
     match quorum::context_get(handle) {
-	Ok(c) => {
-	    if c != set_context {
-		println!("Error: context_get() returned {:x}, context should be {:x}", c, set_context);
-		std::process::exit(2);
-	    }
-	},
-	Err(e) => {
-	    println!("Error in QUORUM context_get: {}", e);
-	    std::process::exit(1);
-	}
+        Ok(c) => {
+            if c != set_context {
+                println!(
+                    "Error: context_get() returned {:x}, context should be {:x}",
+                    c, set_context
+                );
+                std::process::exit(2);
+            }
+        }
+        Err(e) => {
+            println!("Error in QUORUM context_get: {}", e);
+            std::process::exit(1);
+        }
     }
 
-
     if let Err(e) = quorum::trackstart(handle, corosync::TrackFlags::Changes) {
-	println!("Error in QUORUM trackstart: {}", e);
-	std::process::exit(1);
+        println!("Error in QUORUM trackstart: {}", e);
+        std::process::exit(1);
     }
 
     // Let it all finish
-    std::thread::sleep(std::time::Duration::new(5,0));
+    std::thread::sleep(std::time::Duration::new(5, 0));
 }
