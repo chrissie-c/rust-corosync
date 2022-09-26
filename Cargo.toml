@@ -1,6 +1,6 @@
 [package]
 name = "rust-corosync"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Christine Caulfield <ccaulfie@redhat.com>"]
 edition = "2021"
 readme = "README.md"
