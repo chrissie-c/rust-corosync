@@ -788,6 +788,15 @@ pub struct CmapIter {
     data: Data,
 }
 
+impl CmapIter {
+    pub fn key_name(&self) -> &str {
+        &self.key_name
+    }
+    pub fn data(&self) -> &Data {
+        &self.data
+    }
+}
+
 impl fmt::Debug for CmapIter {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: {}", self.key_name, self.data)
