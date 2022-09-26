@@ -1,0 +1,26 @@
+name: CI Testing
+on: [push, pull_request]
+
+jobs:
+  rustfmt_source:
+    name: rustfmt source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --all -- --check
+  rustfmt_tests:
+    name: rustfmt tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - working-directory: ./tests
+        run: cargo fmt --all -- --check
+  clippy_source:
+    name: clippy source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo clippy --all-features
