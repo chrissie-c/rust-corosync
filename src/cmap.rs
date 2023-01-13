@@ -181,18 +181,18 @@ pub fn context_set(handle: Handle, context: u64) -> Result<()> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u32)]
 pub enum DataType {
-    Int8 = ffi::CMAP_VALUETYPE_INT8 as u32,
-    UInt8 = ffi::CMAP_VALUETYPE_UINT8 as u32,
-    Int16 = ffi::CMAP_VALUETYPE_INT16 as u32,
-    UInt16 = ffi::CMAP_VALUETYPE_UINT16 as u32,
-    Int32 = ffi::CMAP_VALUETYPE_INT32 as u32,
-    UInt32 = ffi::CMAP_VALUETYPE_UINT32 as u32,
-    Int64 = ffi::CMAP_VALUETYPE_INT64 as u32,
-    UInt64 = ffi::CMAP_VALUETYPE_UINT64 as u32,
-    Float = ffi::CMAP_VALUETYPE_FLOAT as u32,
-    Double = ffi::CMAP_VALUETYPE_DOUBLE as u32,
-    String = ffi::CMAP_VALUETYPE_STRING as u32,
-    Binary = ffi::CMAP_VALUETYPE_BINARY as u32,
+    Int8 = ffi::CMAP_VALUETYPE_INT8,
+    UInt8 = ffi::CMAP_VALUETYPE_UINT8,
+    Int16 = ffi::CMAP_VALUETYPE_INT16,
+    UInt16 = ffi::CMAP_VALUETYPE_UINT16,
+    Int32 = ffi::CMAP_VALUETYPE_INT32,
+    UInt32 = ffi::CMAP_VALUETYPE_UINT32,
+    Int64 = ffi::CMAP_VALUETYPE_INT64,
+    UInt64 = ffi::CMAP_VALUETYPE_UINT64,
+    Float = ffi::CMAP_VALUETYPE_FLOAT,
+    Double = ffi::CMAP_VALUETYPE_DOUBLE,
+    String = ffi::CMAP_VALUETYPE_STRING,
+    Binary = ffi::CMAP_VALUETYPE_BINARY,
     Unknown = 999,
 }
 

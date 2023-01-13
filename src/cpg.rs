@@ -196,10 +196,10 @@ fn string_to_cpg_name(group: &str) -> Result<ffi::cpg_name> {
 
 // Convert an array of cpg_addresses to a Vec<cpg::Address> - used in callbacks
 fn cpg_array_to_vec(list: *const ffi::cpg_address, list_entries: usize) -> Vec<Address> {
-    let temp: &[ffi::cpg_address] = unsafe { slice::from_raw_parts(list, list_entries as usize) };
+    let temp: &[ffi::cpg_address] = unsafe { slice::from_raw_parts(list, list_entries) };
     let mut r_vec = Vec::<Address>::new();
 
-    for i in 0..list_entries as usize {
+    for i in 0..list_entries {
         let a: Address = Address {
             nodeid: NodeId::from(temp[i].nodeid),
             pid: temp[i].pid,

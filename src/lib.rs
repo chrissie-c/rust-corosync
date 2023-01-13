@@ -284,7 +284,7 @@ fn string_from_bytes(bytes: *const ::std::os::raw::c_char, max_length: usize) ->
         copy_nonoverlapping(bytes as *mut i8, newbytes.as_mut_ptr() as *mut i8, length);
     }
 
-    let cs = match CString::new(&newbytes[0..length as usize]) {
+    let cs = match CString::new(&newbytes[0..length]) {
         Ok(c1) => c1,
         Err(_) => return Err(CsError::CsErrRustString),
     };

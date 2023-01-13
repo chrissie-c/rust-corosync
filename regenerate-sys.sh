@@ -3,7 +3,7 @@
 #
 regen()
 {
-    bindgen --size_t-is-usize --no-recursive-whitelist --no-prepend-enum-name --no-layout-tests --no-doc-comments --generate functions,types /usr/include/corosync/$1.h -o src/sys/$1.rs
+    bindgen --size_t-is-usize --no-recursive-allowlist --no-prepend-enum-name --no-layout-tests --no-doc-comments --generate functions,types /usr/include/corosync/$1.h -o src/sys/$1.rs
 }
 
 

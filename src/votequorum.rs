@@ -454,7 +454,7 @@ pub fn qdevice_poll(handle: Handle, name: &str, cast_vote: bool, ring_id: &RingI
         }
     };
 
-    let c_cast_vote: u32 = if cast_vote { 1 } else { 0 };
+    let c_cast_vote: u32 = u32::from(cast_vote);
     let c_ring_id = ffi::votequorum_ring_id_t {
         nodeid: u32::from(ring_id.nodeid),
         seq: ring_id.seq,
@@ -484,7 +484,7 @@ pub fn qdevice_master_wins(handle: Handle, name: &str, master_wins: bool) -> Res
         }
     };
 
-    let c_master_wins: u32 = if master_wins { 1 } else { 0 };
+    let c_master_wins: u32 = u32::from(master_wins);
 
     let res = unsafe {
         ffi::votequorum_qdevice_master_wins(
